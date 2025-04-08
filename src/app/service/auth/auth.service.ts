@@ -41,7 +41,12 @@ export class AuthService {
   }
 
   get isLoggedIn(): boolean {
-    return !!this.currentUserSubject.value;
+    const token = this.storageService.get('token');
+    if (!token) {
+      return false;
+    }
+    const user = this.getUserProfile()
+    return !!user;
   }
 
   get currentUserValue(): User | null {

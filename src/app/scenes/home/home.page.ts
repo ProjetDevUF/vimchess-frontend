@@ -21,7 +21,6 @@ export class HomePage implements OnInit {
     this.authService.getUserProfile().subscribe({
       next: (userData) => {
         this.user = userData;
-        console.log('Données utilisateur:', this.user);
       },
       error: (error) => {
         console.error('Erreur lors de la récupération du profil:', error);
