@@ -1,0 +1,7 @@
+{
+  "name": "VimChess-Frontend",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "angular-standalone"
+}
