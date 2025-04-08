@@ -1,133 +1,111 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, from, of } from 'rxjs';
-import { map, switchMap, tap } from 'rxjs/operators';
 import { Router } from '@angular/router';
+import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Storage } from '@ionic/storage-angular';
+import {LoginCredentials, RegisterCredentials, User, UserAuth} from "../../models/user/user.module";
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-
-  private currentUserSubject = new BehaviorSubject<any>(null);
-  public currentUser$ = this.currentUserSubject.asObservable();
   private _storage: Storage | null = null;
-  private tokenKey = 'auth_token';
-  private userKey = 'current_user';
+  private currentUserSubject = new BehaviorSubject<User | null>(null);
+  public currentUser = this.currentUserSubject.asObservable();
+  private readonly userKey = 'user_data';
+  private readonly tokenKey = 'access_token';
+  private readonly refreshTokenKey = 'refresh_token';
 
   constructor(
     private http: HttpClient,
     private router: Router,
-    private storageService: Storage
+    private storage: Storage
   ) {
-    this.initStorage();
+    this.init();
   }
 
-  async initStorage() {
-    this._storage = await this.storageService.create();
+  async init() {
+    this._storage = await this.storage.create();
+    this.checkStoredUser();
+  }
 
+  private async checkStoredUser() {
     const token = await this._storage?.get(this.tokenKey);
     const user = await this._storage?.get(this.userKey);
-
     if (token && user) {
       this.currentUserSubject.next(user);
     }
   }
 
-
-  private async loadStoredUser() {
-    if (this._storage) {
-      const token = await this._storage.get(this.tokenKey);
-      const user = await this._storage.get(this.userKey);
-
-      if (token && user) {
-        this.currentUserSubject.next(user);
-      }
-    }
+  get isLoggedIn(): boolean {
+    return !!this.currentUserSubject.value;
   }
 
-  login(credentials: { email: string; password: string }): Observable<any> {
+  get currentUserValue(): User | null {
+    return this.currentUserSubject.value;
+  }
+
+  login(credentials: LoginCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/login`;
 
-    return this.http.post<any>(apiUrl, credentials).pipe(
+    return this.http.post<UserAuth>(apiUrl, credentials).pipe(
       tap(response => {
-        localStorage.setItem('token', response.accessToken);
+        console.log(response);
+        this.storeUserData(response.accessToken, response.refreshToken, response.user);
         this.currentUserSubject.next(response.user);
       })
     );
   }
 
-  private async storeUserData(accessToken: string, refreshToken: string, user: any): Promise<void> {
-    if (!this._storage) {
-      this._storage = await this.storageService.create();
-    }
-
-    await this._storage?.set('access_token', accessToken);
-    await this._storage?.set('refresh_token', refreshToken);
-    await this._storage?.set('user_data', user);
-  }
-
-  logout(): Observable<boolean> {
-    return from(this.clearStorage()).pipe(
-      tap(() => {
-        this.currentUserSubject.next(null);
-        this.router.navigate(['/login']);
-      }),
-      map(() => true)
-    );
-  }
-
-  private async clearStorage(): Promise<void> {
-    if (this._storage) {
-      await this._storage.remove(this.tokenKey);
-      await this._storage.remove(this.userKey);
-    }
-  }
-  register(userData: { email: string; firstname: string, lastname: string, password: string; username: string }): Observable<any> {
+  register(userData: RegisterCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/register`;
 
-    return this.http.post<any>(apiUrl, userData);
-  }
-
-  isAuthenticated(): Observable<boolean> {
-    return this.getToken().pipe(
-      map(token => !!token)
+    return this.http.post<UserAuth>(apiUrl, userData).pipe(
+      tap(response => {
+        console.log(response);
+      })
     );
   }
 
-  getToken(): Observable<string | null> {
+  private async storeUserData(accessToken: string, refreshToken: string, user: User): Promise<void> {
     if (!this._storage) {
-      return of(null);
+      await this.init();
     }
 
-    return from(this._storage.get(this.tokenKey));
+    await this._storage?.set(this.tokenKey, accessToken);
+    await this._storage?.set(this.refreshTokenKey, refreshToken);
+    await this._storage?.set(this.userKey, user);
   }
 
-  getCurrentUser(): Observable<any> {
-    return this.currentUser$;
+  async logout() {
+    if (!this._storage) {
+      await this.init();
+    }
+
+    await this._storage?.remove(this.tokenKey);
+    await this._storage?.remove(this.refreshTokenKey);
+    await this._storage?.remove(this.userKey);
+    this.currentUserSubject.next(null);
+    this.router.navigate(['/login']);
   }
 
-  // Pour rafraîchir les informations de l'utilisateur depuis le serveur
-  refreshUserData(): Observable<any> {
-    return this.getToken().pipe(
-      switchMap(token => {
-        if (!token) {
-          throw new Error('Token non disponible');
+  getUserProfile(): Observable<User> {
+    const apiUrl = `${environment.apiUrl}/api/users/me`;
+    return this.http.get<User>(apiUrl);
+  }
+
+  updateUserProfile(userData: Partial<User>): Observable<User> {
+    const apiUrl = `${environment.apiUrl}/api/users/profile`;
+    return this.http.put<User>(apiUrl, userData).pipe(
+      tap((updatedUser) => {
+        // Mettre à jour l'utilisateur stocké localement
+        const currentUser = this.currentUserSubject.value;
+        if (currentUser) {
+          const newUserData = { ...currentUser, ...updatedUser };
+          this._storage?.set(this.userKey, newUserData);
+          this.currentUserSubject.next(newUserData);
         }
-
-        // Remplacez cette URL par votre endpoint d'API réel
-        const apiUrl = `${environment.apiUrl}/auth/me`;
-
-        return this.http.get<any>(apiUrl).pipe(
-          tap(user => {
-            if (this._storage) {
-              this._storage.set(this.userKey, user);
-            }
-            this.currentUserSubject.next(user);
-          })
-        );
       })
     );
   }
