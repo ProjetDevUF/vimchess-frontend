@@ -1,34 +1,35 @@
 import { Injectable } from '@angular/core';
-import { Storage } from '@ionic/storage-angular';
 
 @Injectable({
   providedIn: 'root'
 })
 export class StorageService {
-  private _storage: Storage | null = null;
 
-  constructor(private storage: Storage) {
-    this.init();
+  constructor() {}
+
+  public set(key: string, value: any): void {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.error('Erreur lors du stockage des données :', e);
+    }
   }
 
-  async init() {
-    const storage = await this.storage.create();
-    this._storage = storage;
+  public get(key: string): any {
+    try {
+      const value = localStorage.getItem(key);
+      return value ? JSON.parse(value) : null;
+    } catch (e) {
+      console.error('Erreur lors de la récupération des données :', e);
+      return null;
+    }
   }
 
-  public async set(key: string, value: any) {
-    await this._storage?.set(key, value);
+  public remove(key: string): void {
+    localStorage.removeItem(key);
   }
 
-  public async get(key: string) {
-    return await this._storage?.get(key);
-  }
-
-  public async remove(key: string) {
-    await this._storage?.remove(key);
-  }
-
-  public async clear() {
-    await this._storage?.clear();
+  public clear(): void {
+    localStorage.clear();
   }
 }

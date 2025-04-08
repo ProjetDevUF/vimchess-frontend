@@ -5,6 +5,7 @@ import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Storage } from '@ionic/storage-angular';
 import {LoginCredentials, RegisterCredentials, User, UserAuth} from "../../models/user/user.module";
+import {StorageService} from "../storage/storage.service";
 
 @Injectable({
   providedIn: 'root'
@@ -20,7 +21,8 @@ export class AuthService {
   constructor(
     private http: HttpClient,
     private router: Router,
-    private storage: Storage
+    private storage: Storage,
+    private storageService: StorageService
   ) {
     this.init();
   }
@@ -51,8 +53,7 @@ export class AuthService {
 
     return this.http.post<UserAuth>(apiUrl, credentials).pipe(
       tap(response => {
-        console.log(response);
-        this.storeUserData(response.accessToken, response.refreshToken, response.user);
+        this.storageService.set('token', response.accessToken);
         this.currentUserSubject.next(response.user);
       })
     );
@@ -61,21 +62,7 @@ export class AuthService {
   register(userData: RegisterCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/register`;
 
-    return this.http.post<UserAuth>(apiUrl, userData).pipe(
-      tap(response => {
-        console.log(response);
-      })
-    );
-  }
-
-  private async storeUserData(accessToken: string, refreshToken: string, user: User): Promise<void> {
-    if (!this._storage) {
-      await this.init();
-    }
-
-    await this._storage?.set(this.tokenKey, accessToken);
-    await this._storage?.set(this.refreshTokenKey, refreshToken);
-    await this._storage?.set(this.userKey, user);
+    return this.http.post<UserAuth>(apiUrl, userData);
   }
 
   async logout() {
@@ -87,12 +74,17 @@ export class AuthService {
     await this._storage?.remove(this.refreshTokenKey);
     await this._storage?.remove(this.userKey);
     this.currentUserSubject.next(null);
-    this.router.navigate(['/login']);
+    await this.router.navigate(['/home']);
   }
 
   getUserProfile(): Observable<User> {
+    const token = this.storageService.get('token');
     const apiUrl = `${environment.apiUrl}/api/users/me`;
-    return this.http.get<User>(apiUrl);
+    return this.http.get<User>(apiUrl, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
   }
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
