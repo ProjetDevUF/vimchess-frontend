@@ -11,7 +11,7 @@ import {ToastController} from "@ionic/angular";
   templateUrl: './register.page.html',
   styleUrls: ['./register.page.scss'],
   standalone: true,
-  imports: [IonContent, IonHeader, IonTitle, IonToolbar, CommonModule, FormsModule, ReactiveFormsModule]
+  imports: [IonContent, CommonModule, FormsModule, ReactiveFormsModule]
 })
 export class RegisterPage implements OnInit {
   registerForm!: FormGroup;

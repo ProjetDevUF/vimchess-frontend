@@ -1,0 +1,44 @@
+<header class="flex justify-between items-center sticky top-0 z-50 px-4">
+  <div class="flex gap-4">
+    <ng-container *ngIf="!isLoggedIn">
+      <a [routerLink]="['/login']">
+        Connexion
+      </a>
+    </ng-container>
+  </div>
+
+  <div class="flex gap-4">
+    <img src="/assets/img/logo.png" alt="logo" width="200">
+  </div>
+
+  <div class="flex gap-4">
+    <ng-container *ngIf="!isLoggedIn">
+      <a [routerLink]="['/register']">
+        Inscription
+      </a>
+    </ng-container>
+
+    <ng-container *ngIf="isLoggedIn">
+      <div class="dropdown">
+        <button class="dropbtn flex items-center">
+          <span class="mr-2">{{ currentUser?.username || 'Utilisateur' }}</span>
+          <ion-icon name="chevron-down-outline"></ion-icon>
+        </button>
+        <div class="dropdown-content">
+          <a [routerLink]="['/profile']">
+            <ion-icon name="person-outline" class="mr-2"></ion-icon>
+            Profil
+          </a>
+          <a [routerLink]="['/settings']">
+            <ion-icon name="settings-outline" class="mr-2"></ion-icon>
+            Paramètres
+          </a>
+          <a (click)="logout()" class="cursor-pointer">
+            <ion-icon name="log-out-outline" class="mr-2"></ion-icon>
+            Déconnexion
+          </a>
+        </div>
+      </div>
+    </ng-container>
+  </div>
+</header>

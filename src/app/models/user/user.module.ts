@@ -1,19 +1,27 @@
 export interface User {
-  id?: string | number;
+  uid: string;
   username: string;
+  email: string;
   firstname: string;
   lastname: string;
-  email: string;
   country: string;
-  profilePicture?: string;
-  createdAt?: Date | string;
-  updatedAt?: Date | string;
+  elo: number;
+  connected: boolean;
+  password?: string;
+  Role: {
+    id: number;
+    role: string;
+  };
+  roleId: number;
+  createdAt: string;
+  updatedAt: string;
+  refreshToken?: string;
+  resetToken: string | null;
 }
 
 export interface UserAuth {
   accessToken: string;
   refreshToken: string;
-  user: User;
 }
 
 export interface LoginCredentials {

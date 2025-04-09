@@ -41,12 +41,24 @@ export class AuthService {
   }
 
   get isLoggedIn(): boolean {
-    const token = this.storageService.get('token');
+    const token = this.storageService.get(this.tokenKey);
     if (!token) {
       return false;
     }
-    const user = this.getUserProfile()
-    return !!user;
+
+    const userData = this.storageService.get(this.userKey);
+
+    if (!userData) {
+      this.getUserProfile().subscribe({
+        next: () => console.log('Profil utilisateur récupéré automatiquement'),
+        error: () => {
+          this.storageService.remove('token');
+          this.storageService.remove('refresh_token');
+          console.error('Token invalide détecté, déconnexion automatique');
+        }
+      });
+    }
+    return true;
   }
 
   get currentUserValue(): User | null {
@@ -58,8 +70,19 @@ export class AuthService {
 
     return this.http.post<UserAuth>(apiUrl, credentials).pipe(
       tap(response => {
-        this.storageService.set('token', response.accessToken);
-        this.currentUserSubject.next(response.user);
+        // Stockez les tokens avec les clés appropriées
+        this.storageService.set(this.tokenKey, response.accessToken);
+        this.storageService.set(this.refreshTokenKey, response.refreshToken);
+
+        this.getUserProfile().subscribe({
+          next: (user) => {
+            console.log('Données utilisateur récupérées après connexion:', user);
+            // Le BehaviorSubject est mis à jour dans getUserProfile
+          },
+          error: (err) => {
+            console.error('Erreur lors de la récupération du profil après connexion:', err);
+          }
+        });
       })
     );
   }
@@ -71,32 +94,41 @@ export class AuthService {
   }
 
   async logout() {
-    if (!this._storage) {
-      await this.init();
-    }
-
-    await this._storage?.remove(this.tokenKey);
-    await this._storage?.remove(this.refreshTokenKey);
-    await this._storage?.remove(this.userKey);
+    await this.storageService.remove(this.tokenKey);
+    await this.storageService.remove(this.refreshTokenKey);
+    await this.storageService.remove(this.userKey);
     this.currentUserSubject.next(null);
     await this.router.navigate(['/home']);
   }
 
   getUserProfile(): Observable<User> {
-    const token = this.storageService.get('token');
+    const token = this.storageService.get(this.tokenKey);
+    if (!token) {
+      return new Observable(observer => {
+        observer.error('Pas de token disponible');
+      });
+    }
+
     const apiUrl = `${environment.apiUrl}/api/users/me`;
+
     return this.http.get<User>(apiUrl, {
       headers: {
         Authorization: `Bearer ${token}`
       }
-    });
+    }).pipe(
+      tap(user => {
+        console.log('Profil utilisateur récupéré:', user);
+        this.storageService.set(this.userKey, user);
+        this.currentUserSubject.next(user);
+      })
+    );
   }
+
 
   updateUserProfile(userData: Partial<User>): Observable<User> {
     const apiUrl = `${environment.apiUrl}/api/users/profile`;
     return this.http.put<User>(apiUrl, userData).pipe(
       tap((updatedUser) => {
-        // Mettre à jour l'utilisateur stocké localement
         const currentUser = this.currentUserSubject.value;
         if (currentUser) {
           const newUserData = { ...currentUser, ...updatedUser };
