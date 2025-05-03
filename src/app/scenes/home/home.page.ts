@@ -1,13 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {
   IonHeader,
-  IonToolbar,
-  IonTitle,
   IonContent,
-  IonFooter,
-  IonButtons,
-  IonButton,
-  IonIcon
 } from '@ionic/angular/standalone';
 import {AuthService} from "../../service/auth/auth.service";
 import {User} from "../../models/user/user.module";
@@ -18,14 +12,15 @@ import {HeaderComponent} from "../components/header/header.component";
   templateUrl: 'home.page.html',
   styleUrls: ['home.page.scss'],
   standalone: true,
-  imports: [IonHeader, IonToolbar, IonTitle, IonContent, IonFooter, HeaderComponent],
+  imports: [IonHeader, IonContent, HeaderComponent],
 })
 export class HomePage implements OnInit {
   user: User | null = null;
 
   constructor(
     private authService: AuthService,
-  ) {}
+  ) {
+  }
 
   ngOnInit() {
     this.authService.getUserProfile().subscribe({

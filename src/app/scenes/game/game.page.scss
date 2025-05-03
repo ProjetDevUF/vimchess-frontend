@@ -1,0 +1,73 @@
+.connection-status {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background-color: #f4f4f4;
+  color: #666;
+
+  &.connected {
+    background-color: #dcf8e8;
+    color: #28a745;
+  }
+
+  ion-icon {
+    margin-right: 8px;
+  }
+}
+
+.game-container {
+  .game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    h2 {
+      margin: 0;
+    }
+  }
+
+  .chessboard-placeholder {
+    aspect-ratio: 1/1;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    border-radius: 8px;
+  }
+
+  .chat-container {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .messages {
+      height: 200px;
+      overflow-y: auto;
+      padding: 8px;
+
+      .message {
+        margin-bottom: 8px;
+        padding: 8px;
+        border-radius: 8px;
+
+        &.my-message {
+          text-align: right;
+
+          strong {
+            color: #075e54;
+          }
+        }
+      }
+    }
+
+    .message-input {
+      display: flex;
+      border-top: 1px solid #eee;
+      padding: 8px;
+    }
+  }
+}

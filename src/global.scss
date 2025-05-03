@@ -40,3 +40,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --primary-color: #14753f;
+  --secondary-color: #14753f;
+  --bg-color: #323232;
+  --bg-color-dark: #222;
+  --text-color: #fff;
+}

@@ -1,0 +1,131 @@
+<ion-header [translucent]="true">
+  <app-header></app-header>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <div id="container" class="p-4 max-w-lg mx-auto">
+    <div class="flex justify-between items-center mb-6">
+      <span class="text-3xl font-bold">
+        {{ currentUser?.username }} Profil
+      </span>
+    </div>
+
+    <div class="rounded-lg shadow-md p-6">
+      <h2 class="text-xl font-semibold text-center mb-6">Modifier le profil</h2>
+
+      <form [formGroup]="profileForm" (ngSubmit)="onSubmit()">
+        <div class="space-y-4">
+          <div class="form-group">
+            <label for="username" class="block text-sm font-medium mb-1">Nom d'utilisateur</label>
+            <input
+              type="text"
+              id="username"
+              formControlName="username"
+              class="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              [ngClass]="{'border-red-500': submitted && f['username'].errors}"
+            >
+            <div *ngIf="submitted && f['username'].errors" class="text-red-500 text-sm mt-1">
+              <span *ngIf="f['username'].errors?.['required']">Le nom d'utilisateur est requis</span>
+              <span *ngIf="f['username'].errors?.['minlength']">Le nom d'utilisateur doit contenir au moins 3 caractères</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="email" class="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              id="email"
+              formControlName="email"
+              class="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              [ngClass]="{'border-red-500': submitted && f['email'].errors}"
+            >
+            <div *ngIf="submitted && f['email'].errors" class="text-red-500 text-sm mt-1">
+              <span *ngIf="f['email'].errors?.['required']">L'email est requis</span>
+              <span *ngIf="f['email'].errors?.['email']">Veuillez entrer une adresse email valide</span>
+            </div>
+          </div>
+
+          <!-- Pays -->
+          <div class="form-group">
+            <label for="country" class="block text-sm font-medium mb-1">Pays</label>
+            <select
+              id="country"
+              formControlName="country"
+              class="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              [ngClass]="{'border-red-500': submitted && f['country'].errors}"
+            >
+              <option value="">Sélectionnez un pays</option>
+              <option *ngFor="let country of countries" [value]="country.code">
+                {{country.name}}
+              </option>
+            </select>
+            <div *ngIf="submitted && f['country'].errors" class="text-red-500 text-sm mt-1">
+              <span *ngIf="f['country'].errors?.['required']">Le pays est requis</span>
+            </div>
+          </div>
+
+          <!-- Mot de passe -->
+          <div class="form-group">
+            <label for="password" class="block text-sm font-medium mb-1">Mot de passe</label>
+            <div class="relative">
+              <input
+                [type]="showPassword ? 'text' : 'password'"
+                id="password"
+                formControlName="password"
+                class="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+                [ngClass]="{'border-red-500': submitted && f['password'].errors}"
+              >
+              <button
+                type="button"
+                class="absolute right-3 top-3 text-gray-500"
+                (click)="togglePasswordVisibility()"
+              >
+                <ion-icon name="eye-outline" *ngIf="!showPassword"></ion-icon>
+                <ion-icon name="eye-off-outline" *ngIf="showPassword"></ion-icon>
+              </button>
+            </div>
+            <div *ngIf="submitted && f['password'].errors" class="text-red-500 text-sm mt-1">
+              <span *ngIf="f['password'].errors?.['minlength']">Le mot de passe doit contenir au moins 6 caractères</span>
+              <span *ngIf="f['password'].errors?.['pattern']">Le mot de passe doit contenir au moins une lettre majuscule, une lettre minuscule et un chiffre</span>
+            </div>
+          </div>
+
+          <!-- Confirmer mot de passe -->
+          <div class="form-group">
+            <label for="confirmPassword" class="block text-sm font-medium mb-1">Confirmer le mot de passe</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              formControlName="confirmPassword"
+              class="w-full p-3 border rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              [ngClass]="{'border-red-500': submitted && f['confirmPassword'].errors}"
+            >
+            <div *ngIf="submitted && f['confirmPassword'].errors" class="text-red-500 text-sm mt-1">
+              <span *ngIf="f['confirmPassword'].errors?.['matching']">Les mots de passe ne correspondent pas</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3 mt-6">
+          <button
+            type="submit"
+            class="basis-2/3 bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition"
+            [disabled]="loading"
+          >
+            <span *ngIf="loading" class="inline-block mr-2">
+              <ion-spinner name="dots" class="h-4 w-4"></ion-spinner>
+            </span>
+            Enregistrer les modifications
+          </button>
+          <button
+            type="button"
+            class="basis-1/3 border border-red-500 text-red-500 hover:bg-red-50 py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition"
+            (click)="openDeleteConfirmation(currentUser?.uid)"
+          >
+            Supprimer
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</ion-content>

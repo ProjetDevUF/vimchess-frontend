@@ -1,11 +1,12 @@
-import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
-import { environment } from '../../../environments/environment';
-import { Storage } from '@ionic/storage-angular';
+import {Injectable} from '@angular/core';
+import {HttpClient} from '@angular/common/http';
+import {Router} from '@angular/router';
+import {BehaviorSubject, Observable, tap} from 'rxjs';
+import {environment} from '../../../environments/environment';
+import {Storage} from '@ionic/storage-angular';
 import {LoginCredentials, RegisterCredentials, User, UserAuth} from "../../models/user/user.module";
 import {StorageService} from "../storage/storage.service";
+import {v4 as uuidv4} from 'uuid';
 
 @Injectable({
   providedIn: 'root'
@@ -61,8 +62,8 @@ export class AuthService {
     return true;
   }
 
-  get currentUserValue(): User | null {
-    return this.currentUserSubject.value;
+  get currentUserValue(): Observable<User> {
+    return this.getUserProfile();
   }
 
   login(credentials: LoginCredentials): Observable<UserAuth> {
@@ -98,7 +99,11 @@ export class AuthService {
     await this.storageService.remove(this.refreshTokenKey);
     await this.storageService.remove(this.userKey);
     this.currentUserSubject.next(null);
-    await this.router.navigate(['/home']);
+    await this.router.navigate(['/login']);
+  }
+
+  getAccessToken(): string | null {
+    return this.storageService.get(this.tokenKey);
   }
 
   getUserProfile(): Observable<User> {
@@ -124,18 +129,40 @@ export class AuthService {
     );
   }
 
-
   updateUserProfile(userData: Partial<User>): Observable<User> {
     const apiUrl = `${environment.apiUrl}/api/users/profile`;
     return this.http.put<User>(apiUrl, userData).pipe(
       tap((updatedUser) => {
         const currentUser = this.currentUserSubject.value;
         if (currentUser) {
-          const newUserData = { ...currentUser, ...updatedUser };
+          const newUserData = {...currentUser, ...updatedUser};
           this._storage?.set(this.userKey, newUserData);
           this.currentUserSubject.next(newUserData);
         }
       })
     );
+  }
+
+  getDeviceId(): string {
+    // Récupérer l'ID stocké ou en générer un nouveau
+    let deviceId = localStorage.getItem('device_id');
+
+    if (!deviceId) {
+      deviceId = this.generateDeviceId();
+      localStorage.setItem('device_id', deviceId);
+    }
+
+    return deviceId;
+  }
+
+  private generateDeviceId(): string {
+    // Générer un UUID v4 unique
+    return uuidv4();
+  }
+
+
+  deleteAccount(id: string | undefined) {
+    const apiUrl = `${environment.apiUrl}/api/users/${id}`;
+    return this.http.delete<User>(apiUrl);
   }
 }

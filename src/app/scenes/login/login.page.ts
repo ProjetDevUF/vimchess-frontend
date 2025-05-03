@@ -27,7 +27,8 @@ export class LoginPage implements OnInit {
   ngOnInit() {
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
-      password: ['', [Validators.required, Validators.minLength(6)]]
+      password: ['', [Validators.required, Validators.minLength(6)]],
+      deviceId: [''],
     });
   }
 
@@ -42,6 +43,8 @@ export class LoginPage implements OnInit {
       this.presentToast('Veuillez remplir tous les champs correctement.', 'danger');
       return false;
     }
+    const loginData = this.loginForm.value;
+    loginData.deviceId = this.authService.getDeviceId();
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (res) => {

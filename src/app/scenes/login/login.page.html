@@ -36,6 +36,7 @@
                   <div *ngIf="errorControl['password'].errors?.['required']">Le mot de passe est requis.</div>
                 </div>
               </div>
+              <input type="hidden" value="true" formControlName="rememberMe" />
             </div>
           </div>
           <div class="items-center p-6 pt-0 flex gap-4 flex-col flex-wrap">

@@ -27,6 +27,7 @@ export interface UserAuth {
 export interface LoginCredentials {
   email: string;
   password: string;
+  deviceId: string;
 }
 
 export interface RegisterCredentials {
