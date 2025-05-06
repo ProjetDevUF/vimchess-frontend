@@ -29,11 +29,7 @@ export const routes: Routes = [
   },
   {
     path: '',
-    redirectTo: 'home',
+    redirectTo: 'login',
     pathMatch: 'full',
-  },
-  {
-    path: 'game',
-    loadComponent: () => import('./scenes/game/game.page').then( m => m.GamePage)
   },
 ];

@@ -1,20 +1,8 @@
-<ion-header>
-  <ion-toolbar>
-    <ion-title>Échecs en ligne</ion-title>
-    <ion-buttons slot="end">
-      <ion-button (click)="refreshLobby()">
-        <ion-icon name="refresh-outline"></ion-icon>
-      </ion-button>
-    </ion-buttons>
-  </ion-toolbar>
+<ion-header collapse="condense">
+  <app-header></app-header>
 </ion-header>
 
 <ion-content class="ion-padding">
-  <!-- Statut de connexion -->
-  <div class="connection-status" [ngClass]="{'connected': gameSocketService.isConnected}">
-    <ion-icon [name]="gameSocketService.isConnected ? 'wifi' : 'wifi-outline'"></ion-icon>
-    {{ gameSocketService.isConnected ? 'Connecté au serveur' : 'Déconnecté' }}
-  </div>
 
   <!-- Lobby -->
   <div *ngIf="!currentGame">
@@ -27,15 +15,19 @@
     <ion-list *ngIf="games.length > 0">
       <ion-item *ngFor="let game of games">
         <ion-label>
-          <h3>Partie #{{game.id}}</h3>
-          <p>Joueur: {{game.players && game.players.length > 0 ? game.players[0].username : 'Anonyme'}}</p>
-          <p>Status: {{game.players?.length >= 2 ? 'Complète' : 'Disponible'}}</p>
+          <h3>Partie #{{ game.id }}</h3>
+          <p>Joueur: {{ game.players && game.players.length > 0 ? game.players[0].username : 'Anonyme' }}</p>
         </ion-label>
         <ion-buttons slot="end">
           <ion-button (click)="joinGame(game.id)"
                       [disabled]="loading || game.players?.length >= 2">
             <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
-            <ion-icon *ngIf="!loading" name="play-outline"></ion-icon>
+            <svg *ngIf="!loading" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                 class="lucide lucide-play-icon lucide-play">
+              <polygon points="6 3 20 12 6 21 6 3"/>
+            </svg>
           </ion-button>
         </ion-buttons>
       </ion-item>
@@ -51,21 +43,32 @@
     </ion-button>
   </div>
 
-  <!-- Interface de jeu -->
   <div *ngIf="currentGame" class="game-container">
     <div class="game-header">
-      <h2>Partie #{{currentGame.id}}</h2>
-      <p>
-        Statut:
-        <span *ngIf="currentGame.players && currentGame.players.length < 2">En attente d'adversaire</span>
-        <span *ngIf="currentGame.players && currentGame.players.length >= 2">Partie en cours</span>
-      </p>
+      <h2>Partie #{{ currentGame.id }}</h2>
       <ion-button color="danger" size="small" (click)="leaveGame()">Quitter</ion-button>
     </div>
 
-    <!-- Placeholder pour l'échiquier -->
-    <div class="chessboard-placeholder">
-      <p class="ion-text-center">Échiquier ici</p>
+    <div class="chessboard-container">
+      <app-chessboard
+        [board]="currentGame?.board"
+        [side]="currentGame?.side"
+        [lastMove]="lastMove"
+        [currentTurn]="currentTurn"
+        (moveMade)="handleMove($event)">
+      </app-chessboard>
+
+      <!-- Boutons de jeu -->
+      <div class="game-controls" *ngIf="currentGame?.status === 'started'">
+        <ion-button color="warning" (click)="proposeDraw()" [disabled]="currentTurn !== currentGame?.side">
+          <ion-icon name="flag-outline" slot="start"></ion-icon>
+          Proposer nulle
+        </ion-button>
+        <ion-button color="danger" (click)="surrender()">
+          <ion-icon name="hand-left-outline" slot="start"></ion-icon>
+          Abandonner
+        </ion-button>
+      </div>
     </div>
 
     <!-- Chat -->
@@ -77,7 +80,7 @@
           <strong>
             {{ (msg.isMine || msg.senderId === currentUserId) ? 'Moi' : (msg.sender || 'Joueur') }}:
           </strong>
-          {{msg.text}}
+          {{ msg.text }}
           <small *ngIf="msg.tempId" class="pending-indicator">(envoi...)</small>
         </div>
       </div>

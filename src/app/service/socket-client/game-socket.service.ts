@@ -1,36 +1,59 @@
-import { Injectable } from '@angular/core';
-import { Socket } from 'ngx-socket-io';
-import { AuthService } from '../auth/auth.service';
-import { Observable, Subject, BehaviorSubject } from 'rxjs';
-import { Lobby, Game, room } from '../../models/socket/socket-events.enum';
+import {Injectable} from '@angular/core';
+import {Socket} from 'ngx-socket-io';
+import {AuthService} from '../auth/auth.service';
+import {Observable, Subject, BehaviorSubject} from 'rxjs';
+import {Lobby, Game, room} from '../../models/socket/socket-events.enum';
 
 @Injectable({
   providedIn: 'root'
 })
 export class GameSocketService {
+  /** Indique si la connexion au serveur de jeu est active */
   isConnected = false;
 
+  /** Subject BehaviorSubject pour stocker la liste des parties disponibles dans le lobby */
   private lobbyGamesSubject = new BehaviorSubject<any[]>([]);
+
+  /** Observable public pour s'abonner aux mises à jour de la liste des parties */
   public lobbyGames$ = this.lobbyGamesSubject.asObservable();
 
+  /** Subject pour les événements bruts reçus du serveur (utile pour le débogage) */
   private rawEventsSubject = new Subject<{ event: string, data: any }>();
+
+  /** Observable public pour s'abonner à tous les événements bruts */
   public rawEvents$ = this.rawEventsSubject.asObservable();
 
+  /**
+   * Initialise le service et configure les écouteurs d'événements de base.
+   *
+   * @param {Socket} socket - Instance de Socket.io pour la communication WebSocket.
+   * @param {AuthService} authService - Service d'authentification pour récupérer les informations de l'utilisateur.
+   */
   constructor(
     public socket: Socket,
     private authService: AuthService
   ) {
     this.setupBasicListeners();
+    this.socket.on('exception', (error) => {
+      console.error('[Socket] Erreur reçue du serveur:', error);
+      if (error.dataSent) {
+        console.error('[Socket] Données qui ont causé l\'erreur:', error.dataSent);
+      }
+    });
+
   }
 
-  // Méthode pour se connecter au serveur
+  /**
+   * Établit la connexion au serveur de jeu avec les identifiants de l'utilisateur.
+   * Ajoute le token d'authentification et l'ID de l'appareil aux paramètres de connexion.
+   * Configure les écouteurs d'événements de connexion et déconnexion.
+   */
   connect(): void {
     if (this.isConnected) return;
 
     try {
       console.log('[Socket] Connexion au serveur...');
 
-      // Configurer l'authentification dans les query parameters
       const token = this.authService.getAccessToken();
       const deviceId = this.authService.getDeviceId();
 
@@ -41,17 +64,14 @@ export class GameSocketService {
         };
       }
 
-      // Se connecter
       this.socket.connect();
 
-      // Écouter l'événement connect
       this.socket.on('connect', () => {
         console.log('[Socket] Connecté au namespace game');
         this.isConnected = true;
         this.getLobbyGames();
       });
 
-      // Écouter l'événement disconnect
       this.socket.on('disconnect', () => {
         console.log('[Socket] Déconnecté du serveur');
         this.isConnected = false;
@@ -61,61 +81,54 @@ export class GameSocketService {
     }
   }
 
-  // Méthode pour se déconnecter
+  /**
+   * Ferme la connexion au serveur de jeu.
+   */
   disconnect(): void {
     console.log('[Socket] Déconnexion du serveur');
     this.socket.disconnect();
     this.isConnected = false;
   }
 
-  // Configuration des écouteurs de base
+  /**
+   * Configure les écouteurs d'événements de base pour le traitement des données reçues.
+   * Capture tous les événements et met à jour les Subjects correspondants.
+   * @private
+   */
   private setupBasicListeners(): void {
-    // Capturer tous les événements pour faciliter le débogage
     this.socket.onAny((event, data) => {
       console.log(`[Socket] Événement reçu: ${event}`, data);
-      this.rawEventsSubject.next({ event, data });
+      this.rawEventsSubject.next({event, data});
 
-      // Traitement spécifique pour certains événements
       if (event === Lobby.update) {
         this.lobbyGamesSubject.next(data || []);
       }
     });
 
-    // Écoute spécifique pour les messages de chat
     this.socket.on(Game.message, (message) => {
       console.log('[Socket] Message de chat détaillé:', message);
-      // Le reste est géré par le Subject général
     });
 
-    // Gestion des erreurs
     this.socket.on('exception', (error) => {
       console.error('[Socket] Erreur reçue:', error);
-      this.rawEventsSubject.next({ event: 'exception', data: error });
+      this.rawEventsSubject.next({event: 'exception', data: error});
     });
   }
 
-  // Observable pour les erreurs socket
-  onException(): Observable<any> {
-    return new Observable(observer => {
-      const subscription = this.rawEvents$.subscribe(event => {
-        if (event.event === 'exception' || event.event === 'error') {
-          observer.next(event.data);
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    });
-  }
-
+  /**
+   * Rejoint une partie d'échecs existante.
+   *
+   * @param {number} gameId - Identifiant de la partie à rejoindre.
+   */
   joinGame(gameId: number): void {
     console.log(`[Socket] Rejoindre la partie simplifiée: ${gameId}`);
-
-    // Émettre l'événement 'join' directement
-    this.socket.emit('join', { gameId });
+    this.socket.emit('join', {gameId});
   }
 
-
-  // Méthode pour obtenir la liste des parties
+  /**
+   * Demande la liste des parties disponibles dans le lobby.
+   * Nécessite que la connexion soit active.
+   */
   getLobbyGames(): void {
     console.log('[Socket] Demande de la liste des parties');
     if (this.isConnected) {
@@ -123,77 +136,82 @@ export class GameSocketService {
     }
   }
 
-  // Observable pour les mises à jour du lobby
+  /**
+   * Retourne un Observable pour suivre les mises à jour de la liste des parties.
+   *
+   * @returns {Observable<any[]>} Observable émettant la liste mise à jour des parties.
+   */
   onLobbyUpdate(): Observable<any[]> {
     return this.lobbyGames$;
   }
 
-  // Méthode pour créer une partie (correspond à 'create' dans votre backend)
-  createGame(options: { timeControl: string, isPublic: boolean }): void {
-    console.log('[Socket] Création d\'une partie:', options);
+  /**
+   * Crée une nouvelle partie d'échecs avec les paramètres spécifiés.
+   * Si aucune couleur n'est spécifiée, en attribue une aléatoirement.
+   *
+   * @param {any} config - Configuration de la partie (couleur, temps, options).
+   */
+  createGame(config: any = {}): void {
+    if (!config.side) {
+      config.side = Math.random() < 0.5 ? 'w' : 'b';
+    }
 
-    const gameData = {
-      timeControl: options.timeControl || '5+0',
-      isPublic: options.isPublic,
-      side: 'rand' // Valeur par défaut dans votre backend
-    };
-
-    this.socket.emit('create', gameData);
+    console.log(`[Socket] Création d'une partie avec configuration:`, config);
+    this.socket.emit('create', config);
   }
 
-  // Méthode pour rejoindre une partie (correspond à 'join' dans votre backend)
-  joinGameViaLobby(gameId: number): Observable<any> {
-    console.log(`[Socket] Rejoindre la partie #${gameId}`);
-
-    const resultSubject = new Subject<any>();
-
-    // Émettre l'événement 'join' attendu par votre backend
-    this.socket.emit('join', { gameId });
-
-    // Observer les événements pour détecter quand on a rejoint la partie
-    const subscription = this.rawEvents$.subscribe(event => {
-      if (event.event === Game.init || event.event === Game.start) {
-        resultSubject.next(event.data);
-        resultSubject.complete();
-      } else if (event.event === 'exception') {
-        resultSubject.error(event.data);
-      }
-    });
-
-    // Nettoyer l'abonnement quand on complète l'opération
-    resultSubject.subscribe({
-      complete: () => subscription.unsubscribe(),
-      error: () => subscription.unsubscribe()
-    });
-
-    return resultSubject.asObservable();
-  }
-
-  // Méthode pour quitter une partie (correspond à 'leave' dans votre backend)
+  /**
+   * Quitte une partie d'échecs en cours.
+   *
+   * @param {string} gameId - Identifiant de la partie à quitter.
+   */
   leaveGame(gameId: string): void {
     console.log(`[Socket] Quitter la partie #${gameId}`);
-    this.socket.emit('leave', { gameId: Number(gameId) });
+    this.socket.emit('leave', {gameId: Number(gameId)});
   }
 
-  // Méthode pour envoyer un mouvement d'échecs (correspond à 'move' dans votre backend)
-  makeMove(gameId: number, figure: string, cell: string): void {
-    this.socket.emit('move', { gameId, figure, cell });
+  /**
+   * Envoie un mouvement d'échecs au serveur.
+   *
+   * @param {number} gameId - Identifiant de la partie.
+   * @param {string} figure - Identifiant de la pièce à déplacer.
+   * @param {string} cell - Case de destination en notation algébrique.
+   * @param {string} [side] - Couleur du joueur (optionnel).
+   */
+  makeMove(gameId: number, figure: string, cell: string, side?: string): void {
+    console.log(`[Socket] Tentative de mouvement: pièce ${figure} vers case ${cell}`);
+
+    const payload: any = {
+      gameId,
+      figure,
+      cell
+    };
+
+    if (side) {
+      payload.side = side;
+    }
+
+    console.log('[Socket] Envoi du coup:', payload);
+    this.socket.emit('move', payload);
   }
 
-  // Méthode pour envoyer un message de chat (correspond à 'chatMessage' dans votre backend)
+  /**
+   * Envoie un message dans le chat de la partie.
+   * Récupère l'identifiant de l'utilisateur courant et l'ajoute au message.
+   *
+   * @param {string} gameId - Identifiant de la partie.
+   * @param {string} text - Contenu du message à envoyer.
+   */
   sendChatMessage(gameId: string, text: string): void {
     console.log(`[Socket] Envoi de message dans la partie #${gameId}:`, text);
 
-    // Obtenir l'UID de l'utilisateur actuel pour le log local (facultatif)
     this.authService.getUserProfile().subscribe(user => {
       const userId = user?.uid || 'anonymous';
       console.log(`[Socket] Message envoyé par utilisateur #${userId}`);
 
-      // Envoyer le message au serveur
       const messageData = {
         gameId: Number(gameId),
         text,
-        // Optionnel: vous pouvez ajouter ces infos, mais le backend pourrait les ignorer
         senderId: userId
       };
 
@@ -201,28 +219,29 @@ export class GameSocketService {
     });
   }
 
-  // Observable pour les messages de chat
+  /**
+   * Crée un Observable pour suivre les messages reçus dans le chat.
+   * Traite les messages pour normaliser leur format et déterminer s'ils proviennent de l'utilisateur courant.
+   *
+   * @returns {Observable<any>} Observable émettant les messages de chat traités.
+   */
   onGameMessage(): Observable<any> {
     return new Observable<any>(observer => {
       const subscription = this.rawEvents$.subscribe(event => {
         if (event.event === Game.message) {
           console.log('[Socket] Message brut reçu complet:', JSON.stringify(event.data));
 
-          // Extraire les données du message et les étendre avec des propriétés supplémentaires
           const messageData = {
             ...event.data,
-            // Tenter de récupérer l'ID d'expéditeur de tous les endroits possibles
             senderId: event.data.senderId || event.data.uid || '',
             sender: event.data.sender || event.data.username || event.data.user?.username || 'Joueur',
             text: event.data.text || event.data.message || event.data.content || ''
           };
 
-          // Vérifier si c'est mon message en comparant avec mon UID
           this.authService.getUserProfile().subscribe(user => {
             if (user) {
               messageData.isMine = (messageData.senderId === user.uid);
 
-              // Si c'est mon message, mettre à jour le nom d'affichage
               if (messageData.isMine) {
                 messageData.sender = 'Moi';
               }
@@ -238,64 +257,6 @@ export class GameSocketService {
       });
 
       return () => subscription.unsubscribe();
-    });
-  }
-
-
-  // Observable pour les événements de création de partie
-  onGameCreated(): Observable<any> {
-    return new Observable<any>(observer => {
-      const subscription = this.rawEvents$.subscribe(event => {
-        if (event.event === Game.created ||
-          event.event === 'gameCreated') {
-          observer.next(event.data);
-        }
-      });
-
-      return () => subscription.unsubscribe();
-    });
-  }
-
-  // Méthode pour obtenir les informations détaillées d'une partie
-  getGameInfo(gameId: string): Promise<any> {
-    return new Promise((resolve, reject) => {
-      // Vérifier d'abord si la partie est dans le lobby
-      const games = this.lobbyGamesSubject.getValue();
-      const game = games.find(g => String(g.id) === gameId);
-
-      if (game) {
-        resolve(game);
-        return;
-      }
-
-      // Si non trouvée, essayer de rejoindre la partie temporairement
-      const joinTimeout = setTimeout(() => {
-        reject(new Error('Game not found'));
-      }, 5000);
-
-      this.socket.emit('join', { gameId: Number(gameId) });
-
-      const subscription = this.rawEvents$.subscribe(event => {
-        if ((event.event === Game.init || event.event === Game.start) &&
-          event.data && (event.data.id === Number(gameId) || event.data.gameId === Number(gameId))) {
-          clearTimeout(joinTimeout);
-          subscription.unsubscribe();
-          resolve(event.data);
-        } else if (event.event === 'exception') {
-          clearTimeout(joinTimeout);
-          subscription.unsubscribe();
-          reject(event.data);
-        }
-      });
-    });
-  }
-
-  // Méthode pour marquer une partie comme non existante
-  markGameAsNonExistent(gameId: string): void {
-    console.log(`[Socket] Marquage de la partie #${gameId} comme non existante`);
-    this.rawEventsSubject.next({
-      event: 'game:nonexistent',
-      data: { gameId }
     });
   }
 }

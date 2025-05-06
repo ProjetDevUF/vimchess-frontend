@@ -5,6 +5,7 @@ import { IonContent } from '@ionic/angular/standalone';
 import { Router } from '@angular/router';
 import {AuthService} from "../../service/auth/auth.service";
 import {ToastController} from "@ionic/angular";
+import {reload} from "ionicons/icons";
 
 @Component({
   selector: 'app-login',
@@ -48,7 +49,7 @@ export class LoginPage implements OnInit {
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (res) => {
-        this.router.navigate(['/home']);
+        this.router.navigate(['/']);
       },
       error: (err) => {
         this.presentToast('Email ou mot de passe incorrect.', 'danger');
