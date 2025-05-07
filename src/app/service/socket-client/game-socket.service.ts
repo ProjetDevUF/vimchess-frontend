@@ -23,6 +23,16 @@ export class GameSocketService {
   /** Observable public pour s'abonner à tous les événements bruts */
   public rawEvents$ = this.rawEventsSubject.asObservable();
 
+  /** Subject pour stocker les utilisateurs connectés (sans l'utilisateur actuel) */
+  private connectedUsersSubject = new BehaviorSubject<any[]>([]);
+
+  /** Observable public pour s'abonner aux utilisateurs connectés */
+  public connectedUsers$ = this.connectedUsersSubject.asObservable();
+
+  /** ID de l'utilisateur actuellement connecté */
+  private currentUserId: string | null = null;
+
+
   /**
    * Initialise le service et configure les écouteurs d'événements de base.
    *
@@ -33,7 +43,15 @@ export class GameSocketService {
     public socket: Socket,
     private authService: AuthService
   ) {
+    this.authService.getUserProfile().subscribe(user => {
+      if (user) {
+        this.currentUserId = user.uid;
+        console.log('[Socket] ID utilisateur courant défini:', this.currentUserId);
+      }
+    });
+
     this.setupBasicListeners();
+
     this.socket.on('exception', (error) => {
       console.error('[Socket] Erreur reçue du serveur:', error);
       if (error.dataSent) {
@@ -108,6 +126,17 @@ export class GameSocketService {
     this.socket.on(Game.message, (message) => {
       console.log('[Socket] Message de chat détaillé:', message);
     });
+
+    this.socket.on('user:connected', (users) => {
+
+      if (Array.isArray(users) && this.currentUserId) {
+        const filteredUsers = users.filter(user => user.uid !== this.currentUserId);
+        this.connectedUsersSubject.next(filteredUsers);
+      } else {
+        this.connectedUsersSubject.next(users || []);
+      }
+    });
+
 
     this.socket.on('exception', (error) => {
       console.error('[Socket] Erreur reçue:', error);

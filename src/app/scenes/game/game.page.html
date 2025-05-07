@@ -37,10 +37,10 @@
       <p>Aucune partie disponible</p>
     </div>
 
-    <ion-button expand="block" (click)="createGame()" [disabled]="loading" class="ion-margin-vertical">
+    <button expand="block" (click)="createGame()" [disabled]="loading" class="ion-margin-vertical bg-green-800 w-full text-white p-4 rounded-lg">
       <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
-      <span *ngIf="!loading">Créer une partie</span>
-    </ion-button>
+      <span *ngIf="!loading" class="uppercase font-bold">Créer une partie</span>
+    </button>
   </div>
 
   <div *ngIf="currentGame" class="game-container">

@@ -261,7 +261,6 @@ ion-button {
   }
 }
 
-// Styles spécifiques pour les éléments Ionic en mode sombre
 ion-refresher {
   --ion-text-color: var(--text-color);
 }
@@ -270,7 +269,6 @@ ion-refresher-content {
   --color: var(--text-color);
 }
 
-// Personnalisation des scrollbars pour le mode sombre
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

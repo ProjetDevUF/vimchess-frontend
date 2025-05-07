@@ -16,6 +16,9 @@ export interface User {
   createdAt: string;
   updatedAt: string;
   refreshToken?: string;
+  losses: number;
+  wins: number;
+  draws: number;
   resetToken: string | null;
 }
 

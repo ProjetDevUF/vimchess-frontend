@@ -33,8 +33,7 @@ export class AppComponent {
     this.router.events.pipe(
       filter(event => event instanceof NavigationEnd)
     ).subscribe((event: NavigationEnd) => {
-      // Connecter le socket seulement quand on est sur la page de jeu
-      if (event.url.includes('/game')) {
+      if (event.url.includes('/game') || event.url.includes('/home')) {
         this.gameSocketService.connect();
       } else {
         this.gameSocketService.disconnect();
@@ -57,7 +56,7 @@ export class AppComponent {
 
       this.platform.resume.subscribe(() => {
         // Reconnecter si on revient sur la page de jeu
-        if (this.router.url.includes('/game')) {
+        if (this.router.url.includes('/game') || this.router.url.includes('/home')) {
           this.gameSocketService.connect();
         }
       });

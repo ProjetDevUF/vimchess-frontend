@@ -188,7 +188,7 @@ export class AuthService {
   private generateDeviceId(): string {
     return uuidv4();
   }
-  
+
   deleteAccount(id: string | undefined) {
     const apiUrl = `${environment.apiUrl}/api/users/${id}`;
     return this.http.delete<User>(apiUrl);

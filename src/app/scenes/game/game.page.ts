@@ -89,8 +89,6 @@ export class GamePage implements OnInit, OnDestroy {
    * et charge la liste des parties disponibles.
    */
   ngOnInit() {
-    console.log('[Game] Initialisation');
-
     this.gameSocketService.connect();
 
     this.subscriptions.push(
