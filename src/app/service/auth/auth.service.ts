@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Router} from '@angular/router';
-import {BehaviorSubject, Observable, tap} from 'rxjs';
+import {BehaviorSubject, catchError, Observable, switchMap, tap, throwError} from 'rxjs';
 import {environment} from '../../../environments/environment';
 import {Storage} from '@ionic/storage-angular';
 import {LoginCredentials, RegisterCredentials, User, UserAuth} from "../../models/user/user.module";
@@ -62,26 +62,20 @@ export class AuthService {
     return true;
   }
 
-  get currentUserValue(): Observable<User> {
-    return this.getUserProfile();
-  }
-
   login(credentials: LoginCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/login`;
 
     return this.http.post<UserAuth>(apiUrl, credentials).pipe(
       tap(response => {
-        // Stockez les tokens avec les clés appropriées
         this.storageService.set(this.tokenKey, response.accessToken);
         this.storageService.set(this.refreshTokenKey, response.refreshToken);
 
         this.getUserProfile().subscribe({
           next: (user) => {
-            console.log('Données utilisateur récupérées après connexion:', user);
-            // Le BehaviorSubject est mis à jour dans getUserProfile
+            this.currentUser = new BehaviorSubject<User | null>(user);
           },
           error: (err) => {
-            console.error('Erreur lors de la récupération du profil après connexion:', err);
+            return throwError(() => new Error('Impossible de se connecter'))
           }
         });
       })
@@ -106,14 +100,32 @@ export class AuthService {
     return this.storageService.get(this.tokenKey);
   }
 
+  refreshToken(): Observable<UserAuth> {
+    const refreshToken = this.storageService.get(this.refreshTokenKey);
+
+    if (!refreshToken) {
+      return throwError(() => new Error('Aucun refresh token disponible'));
+    }
+
+    const apiUrl = `${environment.apiUrl}/api/auth/refresh-token`;
+
+    return this.http.post<UserAuth>(apiUrl, { refreshToken }).pipe(
+      tap(response => {
+        this.storageService.set(this.tokenKey, response.accessToken);
+        this.storageService.set(this.refreshTokenKey, response.refreshToken);
+      }),
+      catchError(error => {
+        this.logout();
+        return throwError(() => new Error('Session expirée, veuillez vous reconnecter'));
+      })
+    );
+  }
+
   getUserProfile(): Observable<User> {
     const token = this.storageService.get(this.tokenKey);
     if (!token) {
-      return new Observable(observer => {
-        observer.error('Pas de token disponible');
-      });
+      return throwError(() => new Error('Pas de token disponible'));
     }
-
     const apiUrl = `${environment.apiUrl}/api/users/me`;
 
     return this.http.get<User>(apiUrl, {
@@ -122,9 +134,28 @@ export class AuthService {
       }
     }).pipe(
       tap(user => {
-        console.log('Profil utilisateur récupéré:', user);
         this.storageService.set(this.userKey, user);
         this.currentUserSubject.next(user);
+      }),
+      catchError(error => {
+        return this.refreshToken().pipe(
+          switchMap(() => {
+            const newToken = this.storageService.get(this.refreshTokenKey);
+            console.log('refreshToken: ', newToken);
+            return this.http.get<User>(apiUrl, {
+              headers: {
+                Authorization: `Bearer ${newToken}`
+              }
+            }).pipe(
+              tap(user => {
+                console.log('Profil utilisateur récupéré après rafraîchissement:', user);
+                this.storageService.set(this.userKey, user);
+                this.currentUserSubject.next(user);
+              })
+            );
+          })
+        );
+
       })
     );
   }
@@ -144,7 +175,6 @@ export class AuthService {
   }
 
   getDeviceId(): string {
-    // Récupérer l'ID stocké ou en générer un nouveau
     let deviceId = localStorage.getItem('device_id');
 
     if (!deviceId) {
@@ -156,11 +186,9 @@ export class AuthService {
   }
 
   private generateDeviceId(): string {
-    // Générer un UUID v4 unique
     return uuidv4();
   }
-
-
+  
   deleteAccount(id: string | undefined) {
     const apiUrl = `${environment.apiUrl}/api/users/${id}`;
     return this.http.delete<User>(apiUrl);

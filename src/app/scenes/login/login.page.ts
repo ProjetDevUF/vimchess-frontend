@@ -44,18 +44,23 @@ export class LoginPage implements OnInit {
       this.presentToast('Veuillez remplir tous les champs correctement.', 'danger');
       return false;
     }
+
     const loginData = this.loginForm.value;
     loginData.deviceId = this.authService.getDeviceId();
 
     this.authService.login(this.loginForm.value).subscribe({
       next: (res) => {
-        this.router.navigate(['/']);
+        this.navigateTo('/home');
       },
       error: (err) => {
         this.presentToast('Email ou mot de passe incorrect.', 'danger');
       }
     })
     return true;
+  }
+
+  navigateTo(path: string) {
+    this.router.navigate([path]);
   }
 
   redirectToRegister() {

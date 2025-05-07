@@ -16,7 +16,6 @@ export class StorageService {
   }
 
   public get(key: string): any {
-    console.log(key);
     try {
       const value = localStorage.getItem(key);
       return value ? JSON.parse(value) : null;

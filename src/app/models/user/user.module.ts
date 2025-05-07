@@ -8,7 +8,7 @@ export interface User {
   elo: number;
   connected: boolean;
   password?: string;
-  Role: {
+  role: {
     id: number;
     role: string;
   };
