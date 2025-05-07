@@ -6,6 +6,7 @@
          [class.selected]="square.position === selectedSquare"
          [class.highlighted]="highlightedSquares.includes(square.position)"
          [class.possible-move]="possibleMoves.includes(square.position)"
+         [class.in-check]="isKingInCheck(square.position)"
          (click)="onSquareClick(square.position)">
 
       <span class="row-label" *ngIf="square.col === 0">{{square.position[1]}}</span>
@@ -24,7 +25,13 @@
 
 <div class="turn-status">
   <div class="turn-indicator" [class.active]="isOurTurn">
-    <div *ngIf="isOurTurn">C'est votre tour de jouer</div>
+    <div *ngIf="isOurTurn">
+      <!-- Ajout d'un avertissement d'échec -->
+      <div *ngIf="inCheck && normalizeSide(checkingSide) === normalizeSide(side)" class="check-warning">
+        Votre roi est en échec! Vous devez le protéger.
+      </div>
+      <div>C'est votre tour de jouer</div>
+    </div>
     <div *ngIf="!isOurTurn">En attente du coup de l'adversaire</div>
 
     <div class="turn-details">

@@ -60,6 +60,13 @@ export class GamePage implements OnInit, OnDestroy {
   /** Subject pour signaler les mises à jour du plateau aux composants enfants */
   private gameUpdated = new Subject<any>();
 
+  isKingInCheck: boolean = false;
+  checkingSide: string = '';
+
+  isInCheck: boolean = false;
+  sideInCheck: string = '';
+
+
   /**
    * Initialise les services nécessaires et récupère le profil utilisateur.
    *
@@ -226,8 +233,20 @@ export class GamePage implements OnInit, OnDestroy {
         break;
 
       case 'game:shah':
-        this.showToast('Échec!', 'warning');
+        this.ngZone.run(() => {
+          this.isInCheck = true;
+          this.sideInCheck = data.side || this.currentTurn;
+
+          const isMyKingInCheck = this.sideInCheck === this.currentGame?.side;
+
+          if (isMyKingInCheck) {
+            this.showToast('Votre roi est en échec! Vous devez résoudre cette situation.', 'warning');
+          } else {
+            this.showToast('Le roi adverse est en échec!', 'info');
+          }
+        });
         break;
+
 
       case 'game:mate':
         this.showToast('Échec et mat!', 'danger');
@@ -270,18 +289,14 @@ export class GamePage implements OnInit, OnDestroy {
    */
   private handleMoveError(errorData: any) {
     this.ngZone.run(() => {
-      console.error('[Game] Erreur de mouvement complète:', errorData);
-      console.error('[Game] Données envoyées qui ont causé l\'erreur:', errorData.dataSent);
-      console.error(`[Game] Statut actuel:
-      - Ma couleur: ${this.currentGame?.side}
-      - Tour actuel: ${this.currentTurn}
-      - Est-ce mon tour (calculé): ${this.normalizeSide(this.currentGame?.side) === this.normalizeSide(this.currentTurn)}
-    `);
+      console.error('[Game] Erreur de mouvement:', errorData);
 
       let errorMessage = "Mouvement invalide";
 
       if (errorData.details) {
-        if (errorData.details.includes("Can't move this figure in cell")) {
+        if (errorData.details.includes("Stil shah")) {
+          errorMessage = "Votre roi est toujours en échec! Vous devez d'abord résoudre cette situation.";
+        } else if (errorData.details.includes("Can't move this figure in cell")) {
           errorMessage = "Ce mouvement n'est pas autorisé";
         } else if (errorData.details.includes("Not your turn")) {
           errorMessage = "Ce n'est pas votre tour";
@@ -292,17 +307,17 @@ export class GamePage implements OnInit, OnDestroy {
 
       this.showToast(errorMessage, 'danger');
 
-      if (this.currentGame && this.currentGame.board) {
-        const currentBoard = {...this.currentGame.board};
-        setTimeout(() => {
-          this.currentGame.board = null;
-          setTimeout(() => {
-            this.currentGame.board = currentBoard;
-          }, 10);
-        }, 10);
+      if (this.currentGame) {
+        this.gameSocketService.socket.emit('getGame', { gameId: this.currentGame.id });
       }
     });
   }
+
+  private requestGameState(gameId: number) {
+    console.log('[Game] Demande de l\'état actuel du jeu après une erreur');
+    this.gameSocketService.socket.emit('getGame', { gameId });
+  }
+
 
   /**
    * Gère l'événement d'un joueur rejoignant la partie.
@@ -395,6 +410,12 @@ export class GamePage implements OnInit, OnDestroy {
    */
   private handleBoardUpdate(data: any) {
     this.ngZone.run(() => {
+      this.isKingInCheck = false;
+      this.checkingSide = '';
+      this.isInCheck = false;
+      this.sideInCheck = '';
+
+
       if (this.currentGame && data) {
         console.log('[Game] Mise à jour du plateau complet:', data);
 
@@ -666,6 +687,16 @@ export class GamePage implements OnInit, OnDestroy {
     if (!this.currentGame) return;
 
     const gameId = this.currentGame.id || this.currentGame.gameId;
+
+    if (this.normalizeSide(this.currentGame.side) !== this.currentTurn) {
+      this.showToast("Ce n'est pas votre tour", 'danger');
+      return;
+    }
+
+    if (this.isKingInCheck && this.checkingSide === this.currentGame.side) {
+      this.showToast("Attention: votre roi est en échec! Vous devez prioritairement résoudre cette situation.", 'warning');
+    }
+
     console.log(`[Game] Coup joué: pièce ${moveData.figure} vers case ${moveData.cell}`);
 
     console.log(`[Game] Vérification du tour: mon côté=${this.currentGame.side}, tour actuel=${this.currentTurn}`);

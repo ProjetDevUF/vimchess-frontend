@@ -30,6 +30,9 @@ export class ChessboardComponent implements OnInit, OnChanges {
   /** Indique le côté dont c'est le tour ('white' ou 'black') */
   @Input() currentTurn: string = 'white';
 
+  @Input() inCheck: boolean = false;
+  @Input() checkingSide: string = '';
+
   /** Événement émis quand un coup est joué */
   @Output() moveMade = new EventEmitter<{ figure: string, cell: string }>();
 
@@ -363,6 +366,21 @@ export class ChessboardComponent implements OnInit, OnChanges {
   }
 
   /**
+   * Détermine si une cellule contient un roi en échec
+   * @param position - Position à vérifier
+   * @returns {boolean} - Vrai si cette position contient un roi en échec
+   */
+  isKingInCheck(position: string): boolean {
+    if (!this.inCheck) return false;
+
+    const piece = this.pieces[position];
+    if (!piece || piece.type !== 'king') return false;
+
+    return this.normalizeSide(piece.color) === this.normalizeSide(this.checkingSide);
+  }
+
+
+  /**
    * Calcule tous les mouvements possibles pour une pièce à une position donnée.
    * Implémente les règles de déplacement spécifiques pour chaque type de pièce.
    *
@@ -525,6 +543,8 @@ export class ChessboardComponent implements OnInit, OnChanges {
       return;
     }
 
+    const isMyKingInCheck = this.inCheck && this.normalizeSide(this.checkingSide) === this.normalizeSide(this.side);
+
     const piece = this.pieces[position];
 
     const isPieceOurs = piece && this.normalizeSide(piece.color) === this.normalizeSide(this.side);
@@ -542,6 +562,11 @@ export class ChessboardComponent implements OnInit, OnChanges {
         }
 
         this.possibleMoves = this.calculatePossibleMoves(position);
+
+        if (isMyKingInCheck && piece.type === 'king') {
+          console.log(`[Chessboard] Roi en échec sélectionné! Mouvements possibles:`, this.possibleMoves);
+        }
+
         console.log(`[Chessboard] Pièce sélectionnée: ${position}, Mouvements possibles:`, this.possibleMoves);
       }
     }
@@ -554,7 +579,7 @@ export class ChessboardComponent implements OnInit, OnChanges {
       if (pieceId) {
         console.log(`[Chessboard] Tentative de déplacement: pièce ${pieceId} de ${this.selectedSquare} vers ${position}`);
 
-        this.applyMove(this.selectedSquare, position);
+        // this.applyMove(this.selectedSquare, position);
 
         this.selectedSquare = null;
         this.possibleMoves = [];
