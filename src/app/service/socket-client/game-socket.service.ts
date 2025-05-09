@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {Socket} from 'ngx-socket-io';
 import {AuthService} from '../auth/auth.service';
 import {Observable, Subject, BehaviorSubject} from 'rxjs';
-import {Lobby, Game, room} from '../../models/socket/socket-events.enum';
+import {Lobby, Game, room, Matchmaking} from '../../models/socket/socket-events.enum';
 
 @Injectable({
   providedIn: 'root'
@@ -152,6 +152,76 @@ export class GameSocketService {
   joinGame(gameId: number): void {
     console.log(`[Socket] Rejoindre la partie simplifiée: ${gameId}`);
     this.socket.emit('join', {gameId});
+  }
+
+  /**
+   * Rejoint la file d'attente de matchmaking pour trouver un adversaire.
+   *
+   * @param {any} options - Options supplémentaires pour le matchmaking (temps, mode, etc.)
+   */
+  joinMatchmaking(options: any = {}): void {
+    console.log('[Socket] Rejoindre la file d\'attente de matchmaking', options);
+    const payload = {
+      preferredSide: options.side || undefined,
+      timeControl: options.timeControl || '5+0'
+    };
+    this.socket.emit(Matchmaking.joinQueue, payload);
+  }
+
+  /**
+   * Quitte la file d'attente de matchmaking.
+   */
+  leaveMatchmaking(): void {
+    console.log('[Socket] Quitter la file d\'attente de matchmaking');
+    this.socket.emit(Matchmaking.leaveQueue);
+  }
+
+  /**
+   * Accepte une proposition de match trouvée.
+   *
+   * @param {string} gameId - Identifiant du match proposé
+   */
+  acceptMatch(gameId: string): void {
+    console.log('[Socket] Accepter le match proposé:', gameId);
+    this.socket.emit(Matchmaking.acceptMatch, { gameId: gameId });
+  }
+
+  /**
+   * Observable pour recevoir les notifications de match trouvé.
+   */
+  onMatchFound(): Observable<any> {
+    return new Observable<any>(observer => {
+      const subscription = this.rawEvents$.subscribe(event => {
+        if (event.event === Matchmaking.matchFound) {
+          console.log('[Socket] Match trouvé:', event.data);
+          observer.next(event.data);
+        } else if (event.event === Matchmaking.timeout) {
+          console.log('[Socket] Timeout de matchmaking:', event.data);
+          observer.next({ timeout: true, ...event.data });
+        } else if (event.event === Matchmaking.opponentTimeout) {
+          console.log('[Socket] Timeout de l\'adversaire:', event.data);
+          observer.next({ opponentTimeout: true, ...event.data });
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    });
+  }
+
+  /**
+   * Observable pour suivre le statut de la file d'attente.
+   */
+  onQueueStatus(): Observable<any> {
+    return new Observable<any>(observer => {
+      const subscription = this.rawEvents$.subscribe(event => {
+        if (event.event === Matchmaking.queueStatus) {
+          console.log('[Socket] Statut de la file d\'attente:', event.data);
+          observer.next(event.data);
+        }
+      });
+
+      return () => subscription.unsubscribe();
+    });
   }
 
   /**

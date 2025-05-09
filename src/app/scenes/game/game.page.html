@@ -12,6 +12,43 @@
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
 
+    <!-- Section Matchmaking -->
+    <div class="matchmaking-section ion-margin-bottom">
+      <h3>Matchmaking</h3>
+
+      <div *ngIf="!matchmakingActive" class="matchmaking-inactive">
+        <p class="text-sm text-gray-600 mb-2">Trouvez un adversaire de niveau similaire grâce au matchmaking</p>
+        <button expand="block" (click)="joinMatchmaking()" [disabled]="loading"
+                class="ion-margin-vertical bg-blue-800 w-full text-white p-4 rounded-lg">
+          <ion-spinner *ngIf="loading" name="crescent" class="mr-2"></ion-spinner>
+          <span *ngIf="!loading" class="uppercase font-bold">Rejoindre le Matchmaking</span>
+        </button>
+      </div>
+
+      <!-- Remplacer la logique de l'UI pour le matchmaking -->
+      <div *ngIf="matchmakingActive" class="matchmaking-active">
+        <div class="matchmaking-status ion-padding bg-blue-100 rounded-lg mb-3">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-blue-800">Recherche en cours...</h4>
+              <p class="text-sm text-blue-600">En attente d'un adversaire de niveau équivalent</p>
+              <p *ngIf="loading" class="text-sm text-green-600 mt-2">Match trouvé! Création de la partie...</p>
+            </div>
+            <ion-spinner name="dots" color="primary"></ion-spinner>
+          </div>
+        </div>
+
+        <button expand="block" (click)="leaveMatchmaking()"
+                class="ion-margin-vertical bg-red-700 w-full text-white p-4 rounded-lg">
+          <span class="uppercase font-bold">Annuler la recherche</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="separator my-4 border-b border-gray-300"></div>
+
+    <!-- Parties existantes -->
+    <h3>Parties directes</h3>
     <ion-list *ngIf="games.length > 0">
       <ion-item *ngFor="let game of games">
         <ion-label>

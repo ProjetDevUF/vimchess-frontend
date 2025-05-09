@@ -8,9 +8,10 @@ import {
 } from '@ionic/angular/standalone';
 import {GameSocketService} from '../../service/socket-client/game-socket.service';
 import {AuthService} from '../../service/auth/auth.service';
-import {Subscription, Subject} from 'rxjs';
+import {Subscription, Subject, interval} from 'rxjs';
 import {ChessboardComponent} from '../components/chessboard/chessboard.component';
 import {HeaderComponent} from "../components/header/header.component";
+import {Game, Matchmaking} from "../../models/socket/socket-events.enum";
 
 @Component({
   selector: 'app-game',
@@ -20,7 +21,7 @@ import {HeaderComponent} from "../components/header/header.component";
   imports: [
     CommonModule,
     FormsModule,
-    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon,
+    IonHeader, IonButtons, IonButton, IonIcon,
     IonContent, IonRefresher, IonRefresherContent, IonList, IonItem,
     IonLabel, IonSpinner, IonInput,
     ChessboardComponent, HeaderComponent
@@ -66,6 +67,10 @@ export class GamePage implements OnInit, OnDestroy {
   isInCheck: boolean = false;
   sideInCheck: string = '';
 
+  matchmakingActive: boolean = false;
+  matchProposal: any = null;
+  matchCountdown: number = 30; // Compte à rebours typique de 30 secondes
+  matchCountdownInterval: any = null;
 
   /**
    * Initialise les services nécessaires et récupère le profil utilisateur.
@@ -103,6 +108,36 @@ export class GamePage implements OnInit, OnDestroy {
         this.ngZone.run(() => {
           this.games = games || [];
         });
+      })
+    );
+
+    this.subscriptions.push(
+      this.gameSocketService.rawEvents$.subscribe(event => {
+        // Si une partie est créée via le matchmaking
+        if (event.event === Game.created || event.event === 'game:created') {
+          this.ngZone.run(() => {
+            console.log('[Game] Partie créée via matchmaking:', event.data);
+            this.loading = false;
+            this.matchmakingActive = false;
+
+            // Si on était en mode matchmaking, on doit rejoindre cette partie
+            if (this.matchProposal) {
+              const gameId = event.data.id || event.data.gameId;
+              if (gameId) {
+                console.log('[Game] Auto-rejoindre la partie de matchmaking:', gameId);
+                this.joinGame(gameId.toString());
+              }
+            }
+          });
+        }
+
+        // Si on reçoit un status de file d'attente qui indique position -1,
+        // cela signifie qu'on n'est plus dans la file (probablement match trouvé)
+        if (event.event === Matchmaking.queueStatus) {
+          if (event.data.position === -1 && this.matchmakingActive) {
+            this.loading = true; // En attente de la création du jeu
+          }
+        }
       })
     );
 
@@ -154,6 +189,11 @@ export class GamePage implements OnInit, OnDestroy {
   ngOnDestroy() {
     this.subscriptions.forEach(sub => sub.unsubscribe());
     this.subscriptions = [];
+    this.clearMatchCountdown();
+
+    if (this.matchmakingActive) {
+      this.leaveMatchmaking();
+    }
 
     if (!this.currentGame) {
       this.gameSocketService.disconnect();
@@ -820,6 +860,166 @@ export class GamePage implements OnInit, OnDestroy {
     });
 
     await alert.present();
+  }
+
+  /**
+   * Rejoint la file d'attente de matchmaking
+   * @param options Options de matchmaking (temps, elo, etc.)
+   */
+  joinMatchmaking(options: any = {}) {
+    console.log('[Game] Tentative de rejoindre la file d\'attente de matchmaking');
+    this.loading = true;
+    this.matchmakingActive = true;
+
+    if (!this.gameSocketService.isConnected) {
+      this.gameSocketService.connect();
+      setTimeout(() => {
+        this.gameSocketService.joinMatchmaking(options);
+      }, 1000);
+      return;
+    }
+
+    this.gameSocketService.joinMatchmaking(options);
+
+    // S'abonner aux événements de matchmaking
+    this.subscriptions.push(
+      this.gameSocketService.onMatchFound().subscribe(matchData => {
+        this.ngZone.run(async () => {
+          this.loading = false;
+
+          if (matchData.timeout) {
+            this.showToast('Vous n\'avez pas accepté le match à temps', 'warning');
+            this.matchmakingActive = false;
+            this.matchProposal = null;
+            this.clearMatchCountdown();
+            return;
+          }
+
+          if (matchData.opponentTimeout) {
+            this.showToast('Votre adversaire n\'a pas accepté le match', 'warning');
+            this.matchmakingActive = false;
+            this.matchProposal = null;
+            this.clearMatchCountdown();
+            return;
+          }
+
+          // Si c'est un nouveau match trouvé
+          this.matchProposal = matchData;
+          this.showMatchFoundAlert(matchData);
+          this.startMatchCountdown();
+        });
+      })
+    );
+
+    this.subscriptions.push(
+      this.gameSocketService.onQueueStatus().subscribe(status => {
+        this.ngZone.run(() => {
+          console.log('[Game] Statut de la file d\'attente:', status);
+          // Vous pouvez mettre à jour l'UI pour afficher la position dans la file d'attente
+        });
+      })
+    );
+  }
+
+
+  /**
+   * Quitte la file d'attente de matchmaking
+   */
+  leaveMatchmaking() {
+    console.log('[Game] Quitter la file d\'attente de matchmaking');
+    this.gameSocketService.leaveMatchmaking();
+    this.loading = false;
+    this.matchmakingActive = false;
+    this.matchProposal = null;
+    this.clearMatchCountdown();
+  }
+
+
+  /**
+   * Accepte un match trouvé
+   */
+  acceptMatch() {
+    if (!this.matchProposal) {
+      this.showToast('Aucun match à accepter', 'warning');
+      return;
+    }
+
+    // Utiliser gameId au lieu de matchId
+    const gameId = this.matchProposal.gameId;
+
+    if (!gameId) {
+      this.showToast('Identifiant de match invalide', 'warning');
+      console.error('[Game] Proposition de match invalide:', this.matchProposal);
+      return;
+    }
+
+    console.log('[Game] Accepter le match avec gameId:', gameId);
+    this.gameSocketService.acceptMatch(gameId);
+    this.clearMatchCountdown();
+    this.matchmakingActive = false;
+    this.loading = true; // Attente que le match commence
+  }
+
+  async showMatchFoundAlert(matchData: any) {
+    const alert = await this.alertController.create({
+      header: 'Match trouvé!',
+      message: `Un adversaire a été trouvé (${matchData.opponent?.username || 'Joueur'} - Elo: ${matchData.opponent?.elo || '?'}).<br>Vous avez ${this.matchCountdown} secondes pour accepter.`,
+      backdropDismiss: false,
+      buttons: [
+        {
+          text: 'Refuser',
+          role: 'cancel',
+          handler: () => {
+            this.leaveMatchmaking();
+          }
+        },
+        {
+          text: 'Accepter',
+          cssClass: 'alert-button-accept',
+          handler: () => {
+            this.acceptMatch();
+          }
+        }
+      ]
+    });
+
+    await alert.present();
+
+    // Mettre à jour le message avec le compte à rebours
+    this.subscriptions.push(
+      interval(1000).subscribe(() => {
+        if (this.matchCountdown > 0 && alert) {
+          this.matchCountdown--;
+          alert.message = `Un adversaire a été trouvé (${matchData.opponent?.username || 'Joueur'} - Elo: ${matchData.opponent?.elo || '?'}).<br>Vous avez ${this.matchCountdown} secondes pour accepter.`;
+        } else if (this.matchCountdown <= 0) {
+          alert.dismiss();
+          this.leaveMatchmaking();
+        }
+      })
+    );
+  }
+
+  startMatchCountdown() {
+    this.matchCountdown = 30; // 30 secondes pour accepter
+    this.clearMatchCountdown();
+
+    this.matchCountdownInterval = setInterval(() => {
+      this.ngZone.run(() => {
+        this.matchCountdown--;
+
+        if (this.matchCountdown <= 0) {
+          this.clearMatchCountdown();
+          // Le timeout sera géré par l'événement du serveur
+        }
+      });
+    }, 1000);
+  }
+
+  clearMatchCountdown() {
+    if (this.matchCountdownInterval) {
+      clearInterval(this.matchCountdownInterval);
+      this.matchCountdownInterval = null;
+    }
   }
 
   /**

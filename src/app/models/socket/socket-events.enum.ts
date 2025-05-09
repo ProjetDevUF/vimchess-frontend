@@ -31,6 +31,19 @@ export enum Game {
   playerReconected = 'game:player-reconnected',
 }
 
+export enum Matchmaking {
+  joinQueue = 'matchmaking:join_queue',
+  leaveQueue = 'matchmaking:leave_queue',
+  matchFound = 'matchmaking:match_found',
+  acceptMatch = 'matchmaking:accept_match',
+  timeout = 'matchmaking:timeout',
+  opponentTimeout = 'matchmaking:opponent_timeout',
+  queueStatus = 'matchmaking:queue_status',
+  rematchPropose = 'matchmaking:rematch_propose',
+  rematchAccept = 'matchmaking:rematch_accept',
+  rematchReject = 'matchmaking:rematch_reject',
+}
+
 export enum User {
   anonymousToken = 'user:anon-token',
 }
