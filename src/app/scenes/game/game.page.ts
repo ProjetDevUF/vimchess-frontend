@@ -1,14 +1,25 @@
-import {Component, OnInit, OnDestroy, NgZone} from '@angular/core';
+import {Component, NgZone, OnDestroy, OnInit} from '@angular/core';
 import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {
-  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonIcon,
-  IonContent, IonRefresher, IonRefresherContent, IonList, IonItem,
-  IonLabel, IonSpinner, IonInput, ToastController, AlertController
+  AlertController,
+  IonButton,
+  IonButtons,
+  IonContent,
+  IonHeader,
+  IonIcon,
+  IonInput,
+  IonItem,
+  IonLabel,
+  IonList,
+  IonRefresher,
+  IonRefresherContent,
+  IonSpinner,
+  ToastController
 } from '@ionic/angular/standalone';
 import {GameSocketService} from '../../service/socket-client/game-socket.service';
 import {AuthService} from '../../service/auth/auth.service';
-import {Subscription, Subject, interval} from 'rxjs';
+import {interval, Subject, Subscription} from 'rxjs';
 import {ChessboardComponent} from '../components/chessboard/chessboard.component';
 import {HeaderComponent} from "../components/header/header.component";
 import {Game, Matchmaking} from "../../models/socket/socket-events.enum";
@@ -61,15 +72,52 @@ export class GamePage implements OnInit, OnDestroy {
   /** Subject pour signaler les mises à jour du plateau aux composants enfants */
   private gameUpdated = new Subject<any>();
 
+  /**
+   * Indique si un roi est actuellement en échec sur l'échiquier.
+   * Utilisé pour surveiller et afficher l'état d'échec pendant une partie.
+   */
   isKingInCheck: boolean = false;
+
+  /**
+   * Identifie le camp qui met le roi adverse en échec ('white' ou 'black').
+   * Vide si aucun roi n'est en échec.
+   */
   checkingSide: string = '';
 
+  /**
+   * Indique si le joueur actuel est en situation d'échec.
+   * Utilisé pour déterminer les mouvements légaux et les notifications.
+   */
   isInCheck: boolean = false;
+
+  /**
+   * Identifie le camp qui est actuellement en échec ('white' ou 'black').
+   * Vide si aucun camp n'est en échec.
+   */
   sideInCheck: string = '';
 
+  /**
+   * Indique si le joueur est actuellement en recherche de partie.
+   * Lorsque true, le joueur est dans la file d'attente de matchmaking.
+   */
   matchmakingActive: boolean = false;
+
+  /**
+   * Contient les détails d'une proposition de match reçue.
+   * null quand aucune proposition n'est active.
+   */
   matchProposal: any = null;
-  matchCountdown: number = 30; // Compte à rebours typique de 30 secondes
+
+  /**
+   * Compte à rebours en secondes pour accepter ou refuser une proposition de match.
+   * La valeur par défaut est de 30 secondes.
+   */
+  matchCountdown: number = 30;
+
+  /**
+   * Référence à l'intervalle qui gère le compte à rebours du matchmaking.
+   * Permet d'annuler le compte à rebours si nécessaire.
+   */
   matchCountdownInterval: any = null;
 
   /**
@@ -113,14 +161,12 @@ export class GamePage implements OnInit, OnDestroy {
 
     this.subscriptions.push(
       this.gameSocketService.rawEvents$.subscribe(event => {
-        // Si une partie est créée via le matchmaking
         if (event.event === Game.created || event.event === 'game:created') {
           this.ngZone.run(() => {
             console.log('[Game] Partie créée via matchmaking:', event.data);
             this.loading = false;
             this.matchmakingActive = false;
 
-            // Si on était en mode matchmaking, on doit rejoindre cette partie
             if (this.matchProposal) {
               const gameId = event.data.id || event.data.gameId;
               if (gameId) {
@@ -131,11 +177,9 @@ export class GamePage implements OnInit, OnDestroy {
           });
         }
 
-        // Si on reçoit un status de file d'attente qui indique position -1,
-        // cela signifie qu'on n'est plus dans la file (probablement match trouvé)
         if (event.event === Matchmaking.queueStatus) {
           if (event.data.position === -1 && this.matchmakingActive) {
-            this.loading = true; // En attente de la création du jeu
+            this.loading = true;
           }
         }
       })
@@ -311,7 +355,6 @@ export class GamePage implements OnInit, OnDestroy {
       const creatorId = gameData.creator?.id || gameData.creatorId;
 
       if (creatorId === this.currentUserId) {
-        console.log('[Game] Partie créée par moi:', gameData);
         this.currentGame = gameData;
         this.showToast('Partie créée avec succès!', 'success');
       }
@@ -352,12 +395,6 @@ export class GamePage implements OnInit, OnDestroy {
       }
     });
   }
-
-  private requestGameState(gameId: number) {
-    console.log('[Game] Demande de l\'état actuel du jeu après une erreur');
-    this.gameSocketService.socket.emit('getGame', { gameId });
-  }
-
 
   /**
    * Gère l'événement d'un joueur rejoignant la partie.
@@ -400,7 +437,6 @@ export class GamePage implements OnInit, OnDestroy {
    * Gère le démarrage d'une partie.
    * Initialise le tour et met à jour le statut du jeu.
    *
-   * @param {any} data - Données de démarrage de la partie.
    * @private
    */
   private handleGameStart(data: any) {
@@ -409,17 +445,10 @@ export class GamePage implements OnInit, OnDestroy {
         this.currentGame.status = 'started';
 
         if (this.currentGame.side) {
-          const normalizedSide = this.normalizeSide(this.currentGame.side);
-          this.currentGame.side = normalizedSide;
+          this.currentGame.side = this.normalizeSide(this.currentGame.side);
         }
 
         this.currentTurn = 'w';
-
-        console.log(`[Game] Partie démarrée:
-        - Tour actuel: ${this.currentTurn}
-        - Ma couleur: ${this.currentGame.side}
-        - Est-ce mon tour: ${this.currentGame.side === this.currentTurn}
-        - Données reçues:`, data);
 
         this.showToast('La partie commence!', 'success');
       }
@@ -457,15 +486,7 @@ export class GamePage implements OnInit, OnDestroy {
 
 
       if (this.currentGame && data) {
-        console.log('[Game] Mise à jour du plateau complet:', data);
-
         if (data.update) {
-
-          console.log('[Game] Données du dernier mouvement:', JSON.stringify(data.update));
-          console.log('[Game] prevCell:', data.update.prevCell);
-          console.log('[Game] cell:', data.update.cell);
-          console.log('[Game] figure:', data.update.figure);
-
 
           this.lastMove = data.update;
 
@@ -476,7 +497,6 @@ export class GamePage implements OnInit, OnDestroy {
             this.currentTurn = 'w';
           }
 
-          console.log(`[Game] Tour mis à jour: ${this.currentTurn}`);
         } else {
           console.warn('[Game] Reçu une mise à jour du plateau sans données de coup');
         }
@@ -565,7 +585,6 @@ export class GamePage implements OnInit, OnDestroy {
    * Rafraîchit la liste des parties disponibles dans le lobby.
    */
   refreshLobby() {
-    console.log('[Game] Rafraîchissement du lobby');
     this.gameSocketService.getLobbyGames();
   }
 
@@ -576,7 +595,6 @@ export class GamePage implements OnInit, OnDestroy {
    * @returns {Promise<void>}
    */
   async createGame() {
-    console.log('[Game] Création d\'une partie');
     this.loading = true;
 
     const alert = await this.alertController.create({
@@ -639,7 +657,6 @@ export class GamePage implements OnInit, OnDestroy {
    * @param {string} gameId - Identifiant de la partie à rejoindre.
    */
   joinGame(gameId: string) {
-    console.log('[Game] Tentative de rejoindre la partie:', gameId);
     this.loading = true;
 
     if (!this.gameSocketService.isConnected) {
@@ -705,7 +722,6 @@ export class GamePage implements OnInit, OnDestroy {
     if (!this.currentGame) return;
 
     const gameId = this.currentGame.id || this.currentGame.gameId;
-    console.log('[Game] Quitter la partie:', gameId);
 
     this.gameSocketService.leaveGame(String(gameId));
     this.currentGame = null;
@@ -737,12 +753,7 @@ export class GamePage implements OnInit, OnDestroy {
       this.showToast("Attention: votre roi est en échec! Vous devez prioritairement résoudre cette situation.", 'warning');
     }
 
-    console.log(`[Game] Coup joué: pièce ${moveData.figure} vers case ${moveData.cell}`);
-
-    console.log(`[Game] Vérification du tour: mon côté=${this.currentGame.side}, tour actuel=${this.currentTurn}`);
-
     if (this.normalizeSide(this.currentGame.side) === 'b') {
-      console.log('[Game] Envoi d\'un coup en tant que joueur noir avec side=b');
 
       this.gameSocketService.socket.emit('move', {
         gameId: Number(gameId),
@@ -769,8 +780,6 @@ export class GamePage implements OnInit, OnDestroy {
     const gameId = this.currentGame.id || this.currentGame.gameId;
     const messageText = this.newMessage.trim();
 
-    console.log('[Game] Envoi de message:', messageText);
-
     this.gameSocketService.sendChatMessage(String(gameId), messageText);
 
     this.messages.push({
@@ -794,8 +803,6 @@ export class GamePage implements OnInit, OnDestroy {
   public processGameUpdate(data: any) {
     if (!data || !this.currentGame) return;
 
-    console.log('[GameService] Traitement d\'une mise à jour de jeu', data);
-
     if (data.board) {
       this.currentGame.board = data.board;
     }
@@ -806,13 +813,6 @@ export class GamePage implements OnInit, OnDestroy {
       this.currentTurn = sideWhoJustPlayed === 'w' ? 'b' : 'w';
 
       this.lastMove = data.update;
-
-      console.log(`[GameService] Mise à jour du tour:
-      - Joueur qui vient de jouer: ${sideWhoJustPlayed}
-      - Prochain tour: ${this.currentTurn}
-      - Mon côté: ${this.currentGame.side}
-      - Est-ce mon tour: ${this.currentTurn === this.normalizeSide(this.currentGame.side)}
-    `);
     }
 
     this.gameUpdated.next({
@@ -867,7 +867,6 @@ export class GamePage implements OnInit, OnDestroy {
    * @param options Options de matchmaking (temps, elo, etc.)
    */
   joinMatchmaking(options: any = {}) {
-    console.log('[Game] Tentative de rejoindre la file d\'attente de matchmaking');
     this.loading = true;
     this.matchmakingActive = true;
 
@@ -881,7 +880,6 @@ export class GamePage implements OnInit, OnDestroy {
 
     this.gameSocketService.joinMatchmaking(options);
 
-    // S'abonner aux événements de matchmaking
     this.subscriptions.push(
       this.gameSocketService.onMatchFound().subscribe(matchData => {
         this.ngZone.run(async () => {
@@ -903,7 +901,6 @@ export class GamePage implements OnInit, OnDestroy {
             return;
           }
 
-          // Si c'est un nouveau match trouvé
           this.matchProposal = matchData;
           this.showMatchFoundAlert(matchData);
           this.startMatchCountdown();
@@ -915,7 +912,6 @@ export class GamePage implements OnInit, OnDestroy {
       this.gameSocketService.onQueueStatus().subscribe(status => {
         this.ngZone.run(() => {
           console.log('[Game] Statut de la file d\'attente:', status);
-          // Vous pouvez mettre à jour l'UI pour afficher la position dans la file d'attente
         });
       })
     );
@@ -960,6 +956,14 @@ export class GamePage implements OnInit, OnDestroy {
     this.loading = true; // Attente que le match commence
   }
 
+  /**
+   * Affiche une alerte lorsqu'un adversaire potentiel est trouvé.
+   * Crée une fenêtre modale permettant au joueur d'accepter ou de refuser le match proposé,
+   * avec un compte à rebours pour prendre une décision.
+   *
+   * @param matchData Les données du match proposé, incluant les informations sur l'adversaire
+   * @returns Une promesse résolue lorsque l'alerte est affichée
+   */
   async showMatchFoundAlert(matchData: any) {
     const alert = await this.alertController.create({
       header: 'Match trouvé!',
@@ -985,7 +989,6 @@ export class GamePage implements OnInit, OnDestroy {
 
     await alert.present();
 
-    // Mettre à jour le message avec le compte à rebours
     this.subscriptions.push(
       interval(1000).subscribe(() => {
         if (this.matchCountdown > 0 && alert) {
@@ -999,8 +1002,13 @@ export class GamePage implements OnInit, OnDestroy {
     );
   }
 
+  /**
+   * Démarre le compte à rebours pour la proposition de match.
+   * Initialise le compteur à 30 secondes et décrémente chaque seconde.
+   * Lorsque le compteur atteint zéro, le compte à rebours est automatiquement nettoyé.
+   */
   startMatchCountdown() {
-    this.matchCountdown = 30; // 30 secondes pour accepter
+    this.matchCountdown = 30;
     this.clearMatchCountdown();
 
     this.matchCountdownInterval = setInterval(() => {
@@ -1009,12 +1017,16 @@ export class GamePage implements OnInit, OnDestroy {
 
         if (this.matchCountdown <= 0) {
           this.clearMatchCountdown();
-          // Le timeout sera géré par l'événement du serveur
         }
       });
     }, 1000);
   }
 
+  /**
+   * Nettoie le compte à rebours du matchmaking en cours.
+   * Annule l'intervalle de temps pour éviter les fuites de mémoire
+   * et réinitialise la référence à l'intervalle.
+   */
   clearMatchCountdown() {
     if (this.matchCountdownInterval) {
       clearInterval(this.matchCountdownInterval);

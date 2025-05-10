@@ -29,11 +29,10 @@ bootstrapApplication(AppComponent, {
     importProvidersFrom(
       IonicStorageModule.forRoot(),
       SocketIoModule.forRoot({
-        url: `${environment.apiUrl}/game`, // URL avec namespace
+        url: `${environment.apiUrl}/game`,
         options: {
           transports: ['websocket'],
           autoConnect: false,
-          // Vous pouvez ajouter d'autres options ici si nécessaire
           reconnection: true,
           reconnectionAttempts: 5,
           reconnectionDelay: 1000

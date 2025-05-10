@@ -1,12 +1,12 @@
 import {
+  ChangeDetectorRef,
   Component,
-  Input,
-  OnInit,
-  OnChanges,
-  Output,
   EventEmitter,
-  SimpleChanges,
-  ChangeDetectorRef
+  Input,
+  OnChanges,
+  OnInit,
+  Output,
+  SimpleChanges
 } from '@angular/core';
 import {CommonModule} from '@angular/common';
 
@@ -30,8 +30,24 @@ export class ChessboardComponent implements OnInit, OnChanges {
   /** Indique le côté dont c'est le tour ('white' ou 'black') */
   @Input() currentTurn: string = 'white';
 
+  /**
+   * Indique si la pièce ou le joueur est actuellement en situation d'échec.
+   * Cette propriété est passée du composant parent et permet d'afficher visuellement
+   * l'état d'échec sur l'échiquier.
+   *
+   * @default false
+   */
   @Input() inCheck: boolean = false;
+
+  /**
+   * Identifie le camp qui met l'adversaire en échec ('white' ou 'black').
+   * Cette information est utilisée pour déterminer quelles cases doivent être
+   * mises en évidence comme menacées.
+   *
+   * @default '' - Chaîne vide si aucun camp ne met l'autre en échec
+   */
   @Input() checkingSide: string = '';
+
 
   /** Événement émis quand un coup est joué */
   @Output() moveMade = new EventEmitter<{ figure: string, cell: string }>();
@@ -92,35 +108,22 @@ export class ChessboardComponent implements OnInit, OnChanges {
    * @param {SimpleChanges} changes - Objet contenant les propriétés modifiées.
    */
   ngOnChanges(changes: SimpleChanges) {
-    console.log(`[Chessboard] Changements détectés:`, {
-      side: this.side,
-      shouldFlip: this.shouldFlipBoard,
-      turn: this.currentTurn,
-      isOurTurn: this.isOurTurn,
-      changes: Object.keys(changes)
-    });
 
-    // Si le board change, mettre à jour l'échiquier
     if (changes['board'] && changes['board'].currentValue) {
       this.updateBoard(changes['board'].currentValue);
     }
 
-    // Si le dernier mouvement change, mettre à jour le surlignage ET déplacer visuellement la pièce
     if (changes['lastMove'] && changes['lastMove'].currentValue) {
       const moveData = changes['lastMove'].currentValue;
       this.highlightLastMove(moveData);
 
-      // Si nous avons les informations de la case précédente, appliquer le mouvement visuel
       if (moveData.prevCell && moveData.cell) {
-        console.log(`[Chessboard] Traitement du mouvement visuel: ${moveData.prevCell} → ${moveData.cell}`);
         this.applyMove(moveData.prevCell, moveData.cell);
       }
     }
 
-    // Si le tour actuel change, mettre à jour l'état
     if (changes['currentTurn']) {
       this.updateTurnStatus();
-      console.log(`[Chessboard] Tour mis à jour: ${this.currentTurn}, Est-ce mon tour: ${this.isOurTurn}`);
     }
 
     if (changes['side']) {
@@ -136,20 +139,8 @@ export class ChessboardComponent implements OnInit, OnChanges {
     const normalizedSide = this.normalizeSide(this.side);
     const normalizedTurn = this.normalizeSide(this.currentTurn);
 
-    console.log(`[Chessboard] Mise à jour du statut de tour:
-    - Tour actuel (brut): ${this.currentTurn}
-    - Tour actuel (normalisé): ${normalizedTurn}
-    - Ma couleur (brute): ${this.side}
-    - Ma couleur (normalisée): ${normalizedSide}
-    - Est-ce mon tour: ${normalizedSide === normalizedTurn}
-  `);
-
-    // Déterminer si c'est notre tour en comparant notre couleur avec le tour actuel
     this.isOurTurn = normalizedSide === normalizedTurn;
 
-    console.log(`[Chessboard] État final du tour: isOurTurn=${this.isOurTurn}`);
-
-    // Si ce n'est plus notre tour, désélectionner la pièce pour éviter les mouvements accidentels
     if (!this.isOurTurn) {
       this.selectedSquare = null;
       this.possibleMoves = [];
@@ -174,7 +165,6 @@ export class ChessboardComponent implements OnInit, OnChanges {
       return 'b';
     }
 
-    console.warn(`[Chessboard] Format de couleur non reconnu: ${side}`);
     return sideLower;
   }
 
@@ -216,22 +206,17 @@ export class ChessboardComponent implements OnInit, OnChanges {
   updateBoard(boardData: any) {
     if (!boardData) return;
 
-    console.log('[Chessboard] Mise à jour du plateau avec données:', boardData);
-
     this.boardData = boardData;
 
     this.pieces = {};
 
     if (boardData.w && boardData.b) {
-      console.log('[Chessboard] Traitement du plateau au format {w, b}');
-
       Object.entries(boardData.w).forEach(([position, pieceId]: [string, any]) => {
         if (position.length === 2) {
           this.pieces[position] = {
             type: this.getPieceTypeFromId(pieceId),
             color: 'w'
           };
-          console.log(`[Chessboard] Ajout pièce blanche: ${pieceId} à ${position}`);
         }
       });
 
@@ -241,13 +226,11 @@ export class ChessboardComponent implements OnInit, OnChanges {
             type: this.getPieceTypeFromId(pieceId),
             color: 'b'
           };
-          console.log(`[Chessboard] Ajout pièce noire: ${pieceId} à ${position}`);
         }
       });
     } else if (typeof boardData === 'string') {
       this.parseFEN(boardData);
     } else {
-      console.log('[Chessboard] Format non reconnu, tentative de déduction du format');
 
       if (Object.keys(boardData).some(key => key.length === 2 && /[a-h][1-8]/.test(key))) {
         Object.entries(boardData).forEach(([position, piece]: [string, any]) => {
@@ -269,7 +252,6 @@ export class ChessboardComponent implements OnInit, OnChanges {
         });
       } else {
         console.warn('[Chessboard] Format de données inconnu, impossible de mettre à jour le plateau');
-        console.log('[Chessboard] Structure reçue:', boardData);
       }
     }
 
@@ -277,8 +259,6 @@ export class ChessboardComponent implements OnInit, OnChanges {
     this.possibleMoves = [];
 
     this.updateTurnStatus();
-
-    console.log('[Chessboard] Plateau mis à jour, nombre de pièces:', Object.keys(this.pieces).length);
   }
 
   /**
@@ -356,11 +336,9 @@ export class ChessboardComponent implements OnInit, OnChanges {
     if (moveData) {
       if (moveData.prevCell) {
         this.highlightedSquares.push(moveData.prevCell);
-        console.log(`[Chessboard] Surlignage de la case de départ: ${moveData.prevCell}`);
       }
       if (moveData.cell) {
         this.highlightedSquares.push(moveData.cell);
-        console.log(`[Chessboard] Surlignage de la case d'arrivée: ${moveData.cell}`);
       }
     }
   }
@@ -539,11 +517,8 @@ export class ChessboardComponent implements OnInit, OnChanges {
   onSquareClick(position: string) {
 
     if (!this.isOurTurn) {
-      console.log(`[Chessboard] Ce n'est pas votre tour! Tour actuel: ${this.currentTurn}, Votre couleur: ${this.side}, isOurTurn=${this.isOurTurn}`);
       return;
     }
-
-    const isMyKingInCheck = this.inCheck && this.normalizeSide(this.checkingSide) === this.normalizeSide(this.side);
 
     const piece = this.pieces[position];
 
@@ -562,25 +537,13 @@ export class ChessboardComponent implements OnInit, OnChanges {
         }
 
         this.possibleMoves = this.calculatePossibleMoves(position);
-
-        if (isMyKingInCheck && piece.type === 'king') {
-          console.log(`[Chessboard] Roi en échec sélectionné! Mouvements possibles:`, this.possibleMoves);
-        }
-
-        console.log(`[Chessboard] Pièce sélectionnée: ${position}, Mouvements possibles:`, this.possibleMoves);
       }
     }
     else if (this.selectedSquare && this.possibleMoves.includes(position)) {
-      console.log(`[Chessboard] Tentative de déplacement de ${this.selectedSquare} vers ${position}`);
-
       const playerColor = this.normalizeSide(this.side);
       const pieceId = this.findPieceIdAtPosition(this.selectedSquare, playerColor);
 
       if (pieceId) {
-        console.log(`[Chessboard] Tentative de déplacement: pièce ${pieceId} de ${this.selectedSquare} vers ${position}`);
-
-        // this.applyMove(this.selectedSquare, position);
-
         this.selectedSquare = null;
         this.possibleMoves = [];
 
@@ -601,36 +564,24 @@ export class ChessboardComponent implements OnInit, OnChanges {
    * @returns {boolean} Vrai si le mouvement a été appliqué avec succès, faux sinon.
    */
   applyMove(from: string, to: string) {
-    console.log(`[Chessboard] Application du mouvement de ${from} vers ${to}`);
-
-    // Vérifier que la pièce existe à la position de départ
     if (!this.pieces[from]) {
-      console.error(`[Chessboard] Aucune pièce à déplacer depuis ${from}`);
       return false;
     }
 
-    // Copier la pièce
     const piece = {...this.pieces[from]};
 
-    // Supprimer la pièce de sa position d'origine
     delete this.pieces[from];
 
-    // Placer la pièce à sa nouvelle position
     this.pieces[to] = piece;
 
-    console.log(`[Chessboard] Pièce déplacée: ${piece.type} de couleur ${piece.color} vers ${to}`);
-
-    // Mettre à jour les données du plateau si nécessaire
     if (this.boardData) {
       const color = piece.color;
       if (this.boardData[color]) {
-        // Chercher l'ID de la pièce dans les données d'origine
         const pieceId = Object.entries(this.boardData[color]).find(
           ([pos, id]) => pos === from
         )?.[1];
 
         if (pieceId) {
-          // Mettre à jour la position dans les données du plateau
           delete this.boardData[color][from];
           this.boardData[color][to] = pieceId;
         }
@@ -653,21 +604,17 @@ export class ChessboardComponent implements OnInit, OnChanges {
    */
   findPieceIdAtPosition(position: string, playerColor: string): string | null {
     if (!this.boardData) {
-      console.error(`[Chessboard] Aucune donnée de plateau`);
       return null;
     }
 
     if (this.boardData[playerColor] && this.boardData[playerColor][position]) {
-      const pieceId = this.boardData[playerColor][position];
-      console.log(`[Chessboard] Pièce trouvée à la position ${position} pour la couleur ${playerColor}: ${pieceId}`);
-      return pieceId;
+      return this.boardData[playerColor][position];
     }
 
     const piece = this.pieces[position];
     if (piece && this.normalizeSide(piece.color) === playerColor) {
       for (const [origPos, pieceId] of Object.entries(this.boardData[playerColor] || {})) {
         if (typeof pieceId === 'string' && pieceId.startsWith(piece.type) && !this.pieces[origPos]) {
-          console.log(`[Chessboard] Pièce retrouvée par déduction: ${pieceId} à ${position}`);
 
           if (!this.boardData[playerColor]) this.boardData[playerColor] = {};
           this.boardData[playerColor][position] = pieceId;
@@ -678,7 +625,6 @@ export class ChessboardComponent implements OnInit, OnChanges {
       }
 
       const fallbackId = `${piece.type}${Date.now() % 1000}`;
-      console.log(`[Chessboard] Création d'un ID temporaire pour la pièce: ${fallbackId}`);
 
       if (!this.boardData[playerColor]) this.boardData[playerColor] = {};
       this.boardData[playerColor][position] = fallbackId;
@@ -686,7 +632,6 @@ export class ChessboardComponent implements OnInit, OnChanges {
       return fallbackId;
     }
 
-    console.error(`[Chessboard] Aucune pièce trouvée à la position ${position} pour la couleur ${playerColor}`);
     return null;
   }
 }

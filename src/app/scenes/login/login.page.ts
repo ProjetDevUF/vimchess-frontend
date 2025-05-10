@@ -15,9 +15,20 @@ import {reload} from "ionicons/icons";
   imports: [IonContent, CommonModule, ReactiveFormsModule]
 })
 export class LoginPage implements OnInit {
+  /** Formulaire de connexion avec validation */
   loginForm!: FormGroup;
+
+  /** Indique si le formulaire a été soumis */
   isSubmitted = false;
 
+  /**
+   * Initialise le composant de connexion.
+   *
+   * @param formBuilder - Service pour créer des formulaires réactifs.
+   * @param router - Service pour la navigation dans l'application.
+   * @param authService - Service gérant l'authentification.
+   * @param toastController - Contrôleur pour afficher des notifications toast.
+   */
   constructor(
     private formBuilder: FormBuilder,
     private router: Router,
@@ -25,6 +36,10 @@ export class LoginPage implements OnInit {
     private toastController: ToastController
   ) { }
 
+  /**
+   * Initialise le formulaire de connexion avec les validateurs appropriés.
+   * Exécuté à l'initialisation du composant.
+   */
   ngOnInit() {
     this.loginForm = this.formBuilder.group({
       email: ['', [Validators.required, Validators.email]],
@@ -33,10 +48,22 @@ export class LoginPage implements OnInit {
     });
   }
 
+  /**
+   * Accesseur pour les contrôles du formulaire, facilitant l'accès aux erreurs.
+   *
+   * @returns Les contrôles du formulaire de connexion.
+   */
   get errorControl() {
     return this.loginForm.controls;
   }
 
+  /**
+   * Traite la soumission du formulaire de connexion.
+   * Vérifie la validité des données, puis tente de connecter l'utilisateur.
+   * Affiche des messages d'erreur appropriés en cas d'échec.
+   *
+   * @returns {boolean} - False si le formulaire est invalide, True sinon.
+   */
   submitForm() {
     this.isSubmitted = true;
 
@@ -59,14 +86,28 @@ export class LoginPage implements OnInit {
     return true;
   }
 
+  /**
+   * Navigue vers le chemin spécifié.
+   *
+   * @param {string} path - Chemin de destination.
+   */
   navigateTo(path: string) {
     this.router.navigate([path]);
   }
 
+  /**
+   * Redirige l'utilisateur vers la page d'inscription.
+   */
   redirectToRegister() {
     this.router.navigate(['/register']);
   }
 
+  /**
+   * Affiche une notification toast avec le message et la couleur spécifiés.
+   *
+   * @param {string} message - Message à afficher.
+   * @param {string} color - Couleur du toast (success par défaut).
+   */
   async presentToast(message: string, color: string = 'success') {
     const toast = await this.toastController.create({
       message: message,

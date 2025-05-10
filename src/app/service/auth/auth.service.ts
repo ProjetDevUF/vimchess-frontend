@@ -19,6 +19,14 @@ export class AuthService {
   private readonly tokenKey = 'access_token';
   private readonly refreshTokenKey = 'refresh_token';
 
+  /**
+   * Initialise le service d'authentification.
+   *
+   * @param http - Client HTTP pour effectuer des requêtes vers l'API.
+   * @param router - Service de routage pour la navigation dans l'application.
+   * @param storage - Service de stockage pour persister les données utilisateur.
+   * @param storageService - Service offrant des méthodes simplifiées pour le stockage.
+   */
   constructor(
     private http: HttpClient,
     private router: Router,
@@ -28,11 +36,19 @@ export class AuthService {
     this.init();
   }
 
+  /**
+   * Initialise le stockage et vérifie si un utilisateur est déjà connecté.
+   * Cette méthode est appelée automatiquement lors de l'initialisation du service.
+   */
   async init() {
     this._storage = await this.storage.create();
     this.checkStoredUser();
   }
 
+  /**
+   * Vérifie si un utilisateur est présent dans le stockage local et met à jour le BehaviorSubject.
+   * @private
+   */
   private async checkStoredUser() {
     const token = await this._storage?.get(this.tokenKey);
     const user = await this._storage?.get(this.userKey);
@@ -41,6 +57,13 @@ export class AuthService {
     }
   }
 
+  /**
+   * Vérifie si un utilisateur est actuellement connecté.
+   * Si un token est présent mais que les données utilisateur ne sont pas disponibles,
+   * tente de récupérer le profil utilisateur.
+   *
+   * @returns {boolean} - True si l'utilisateur est connecté, false sinon.
+   */
   get isLoggedIn(): boolean {
     const token = this.storageService.get(this.tokenKey);
     if (!token) {
@@ -62,6 +85,13 @@ export class AuthService {
     return true;
   }
 
+  /**
+   * Connecte un utilisateur avec ses identifiants.
+   * Stocke les tokens d'authentification et récupère le profil utilisateur après connexion.
+   *
+   * @param {LoginCredentials} credentials - Identifiants de connexion (email, mot de passe, appareil).
+   * @returns {Observable<UserAuth>} - Observable contenant les informations d'authentification.
+   */
   login(credentials: LoginCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/login`;
 
@@ -82,12 +112,23 @@ export class AuthService {
     );
   }
 
+  /**
+   * Inscrit un nouvel utilisateur avec les informations fournies.
+   *
+   * @param {RegisterCredentials} userData - Données d'inscription (nom, email, mot de passe, etc.).
+   * @returns {Observable<UserAuth>} - Observable contenant les informations d'authentification.
+   */
   register(userData: RegisterCredentials): Observable<UserAuth> {
     const apiUrl = `${environment.apiUrl}/api/auth/register`;
 
     return this.http.post<UserAuth>(apiUrl, userData);
   }
 
+  /**
+   * Déconnecte l'utilisateur actuel.
+   * Supprime les tokens et les informations utilisateur du stockage,
+   * puis redirige vers la page de connexion.
+   */
   async logout() {
     await this.storageService.remove(this.tokenKey);
     await this.storageService.remove(this.refreshTokenKey);
@@ -96,10 +137,21 @@ export class AuthService {
     await this.router.navigate(['/login']);
   }
 
+  /**
+   * Récupère le token d'accès depuis le stockage.
+   *
+   * @returns {string|null} - Le token d'accès ou null s'il n'existe pas.
+   */
   getAccessToken(): string | null {
     return this.storageService.get(this.tokenKey);
   }
 
+  /**
+   * Rafraîchit le token d'accès à l'aide du refresh token.
+   * En cas d'échec, déconnecte l'utilisateur.
+   *
+   * @returns {Observable<UserAuth>} - Observable contenant les nouveaux tokens.
+   */
   refreshToken(): Observable<UserAuth> {
     const refreshToken = this.storageService.get(this.refreshTokenKey);
 
@@ -121,6 +173,12 @@ export class AuthService {
     );
   }
 
+  /**
+   * Récupère le profil de l'utilisateur connecté.
+   * Si le token est expiré, tente de le rafraîchir et réessaie.
+   *
+   * @returns {Observable<User>} - Observable contenant les informations de l'utilisateur.
+   */
   getUserProfile(): Observable<User> {
     const token = this.storageService.get(this.tokenKey);
     if (!token) {
@@ -160,6 +218,13 @@ export class AuthService {
     );
   }
 
+  /**
+   * Met à jour le profil de l'utilisateur.
+   * Après la mise à jour, actualise les données stockées localement.
+   *
+   * @param {Partial<User>} userData - Données à mettre à jour (champs partiels).
+   * @returns {Observable<User>} - Observable contenant les informations mises à jour.
+   */
   updateUserProfile(userData: Partial<User>): Observable<User> {
     const apiUrl = `${environment.apiUrl}/api/users/profile`;
     return this.http.put<User>(apiUrl, userData).pipe(
@@ -174,6 +239,12 @@ export class AuthService {
     );
   }
 
+  /**
+   * Récupère l'identifiant unique de l'appareil.
+   * Si l'identifiant n'existe pas, en génère un nouveau.
+   *
+   * @returns {string} - Identifiant unique de l'appareil.
+   */
   getDeviceId(): string {
     let deviceId = localStorage.getItem('device_id');
 
@@ -185,10 +256,22 @@ export class AuthService {
     return deviceId;
   }
 
+  /**
+   * Génère un nouvel identifiant unique pour l'appareil.
+   *
+   * @private
+   * @returns {string} - Identifiant UUID v4 généré.
+   */
   private generateDeviceId(): string {
     return uuidv4();
   }
 
+  /**
+   * Supprime le compte utilisateur identifié par l'ID fourni.
+   *
+   * @param {string|undefined} id - Identifiant de l'utilisateur à supprimer.
+   * @returns {Observable<User>} - Observable confirmant la suppression.
+   */
   deleteAccount(id: string | undefined) {
     const apiUrl = `${environment.apiUrl}/api/users/${id}`;
     return this.http.delete<User>(apiUrl);
