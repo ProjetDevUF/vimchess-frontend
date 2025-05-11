@@ -1,0 +1,388 @@
+ion-icon {
+  color: var(--text-color);
+  --ionicon-stroke-width: 32px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  font-size: 1.2rem;
+}
+
+ion-content {
+  --background: var(--bg-color);
+  --color: var(--text-color);
+}
+
+ion-toolbar {
+  --background: var(--surface-color);
+  --color: var(--text-color);
+  --border-color: var(--border-color);
+}
+
+// Statut de connexion
+.connection-status {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background-color: rgba(var(--ion-color-danger-rgb), 0.15);
+  color: var(--ion-color-danger);
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 6px var(--shadow-color);
+
+  ion-icon {
+    margin-right: 8px;
+    font-size: 1.2rem;
+    color: currentColor;
+  }
+
+  &.connected {
+    background-color: rgba(var(--ion-color-success-rgb), 0.15);
+    color: var(--ion-color-success);
+  }
+}
+
+// Lobby
+ion-list {
+  background: transparent;
+  padding: 0;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px var(--shadow-color);
+
+  ion-item {
+    --background: var(--surface-color);
+    --color: var(--text-color);
+    --border-color: var(--border-color);
+    margin-bottom: 2px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    ion-label {
+      h3 {
+        font-weight: 600;
+        color: var(--text-color);
+      }
+
+      p {
+        color: var(--text-color-muted);
+      }
+    }
+
+    ion-button {
+      --color: var(--text-color);
+
+      ion-icon {
+        font-size: 1.2rem;
+        margin: 0;
+        color: currentColor;
+      }
+    }
+  }
+}
+
+// Container de jeu
+.game-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  background-color: var(--surface-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 10px var(--shadow-color);
+
+  h2 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  p {
+    margin: 0;
+    color: var(--text-color-muted);
+  }
+}
+
+.chessboard-container {
+  background-color: var(--surface-color);
+  padding: 18px;
+  border-radius: 10px;
+  box-shadow: 0 4px 14px var(--shadow-color);
+
+  .player-info {
+    margin-bottom: 14px;
+
+    .player-side {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      color: var(--text-color);
+
+      .indicator {
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+
+        &.w {
+          background-color: #ffffff;
+          box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+        }
+
+        &.b {
+          background-color: #121212;
+          box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+      }
+    }
+  }
+
+  .game-controls {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 18px;
+
+    ion-button {
+      --border-radius: 8px;
+      font-weight: 500;
+
+      ion-icon {
+        font-size: 1.2rem;
+        margin-right: 6px;
+        color: currentColor;
+      }
+    }
+  }
+}
+
+// Chat
+.chat-container {
+  background-color: var(--surface-color);
+  border-radius: 10px;
+  box-shadow: 0 4px 12px var(--shadow-color);
+  display: flex;
+  flex-direction: column;
+  height: 250px;
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .message {
+      padding: 10px 14px;
+      border-radius: 18px;
+      background-color: var(--surface-color-light);
+      align-self: flex-start;
+      max-width: 80%;
+      word-break: break-word;
+      color: var(--text-color);
+
+      strong {
+        color: var(--text-color);
+        margin-right: 4px;
+      }
+
+      &.my-message {
+        background-color: rgba(var(--ion-color-primary-rgb), 0.3);
+        align-self: flex-end;
+
+        strong {
+          color: rgba(var(--ion-color-primary-rgb), 0.9);
+        }
+      }
+
+      .pending-indicator {
+        font-style: italic;
+        opacity: 0.7;
+        margin-left: 4px;
+      }
+    }
+  }
+
+  .message-input {
+    display: flex;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border-color);
+
+    ion-input {
+      --padding-start: 14px;
+      --background: var(--surface-color-light);
+      --color: var(--text-color);
+      --placeholder-color: var(--text-color-muted);
+      --border-radius: 24px;
+      margin-right: 8px;
+    }
+
+    ion-button {
+      --padding-start: 10px;
+      --padding-end: 10px;
+      --color: var(--text-color);
+
+      ion-icon {
+        font-size: 1.2rem;
+        color: currentColor;
+      }
+    }
+  }
+}
+
+// Boutons
+ion-button {
+  --border-radius: 8px;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+
+  &[expand="block"] {
+    margin: 16px 0;
+  }
+
+  ion-spinner {
+    margin-right: 8px;
+  }
+
+  ion-icon {
+    display: inline-block;
+    visibility: visible !important;
+  }
+}
+
+ion-refresher {
+  --ion-text-color: var(--text-color);
+}
+
+ion-refresher-content {
+  --color: var(--text-color);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-color-muted);
+}
+
+// Styles pour le matchmaking
+.matchmaking-controls {
+  margin-top: 20px;
+}
+
+.matchmaking-status {
+  background-color: var(--surface-color-light);
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 16px;
+  box-shadow: 0 4px 10px var(--shadow-color);
+
+  p {
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  ion-spinner {
+    display: block;
+    margin: 0 auto;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+// Style pour le bouton d'acceptation dans l'alerte
+.alert-button-accept {
+  color: var(--ion-color-success) !important;
+  font-weight: bold;
+}
+
+// Style pour les horloges
+.clocks-container {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding: 8px;
+  background-color: var(--surface-color);
+  border-radius: 8px;
+  box-shadow: 0 2px 6px var(--shadow-color);
+}
+
+.clock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+  opacity: 0.7;
+
+  &.active {
+    background-color: var(--surface-color-light);
+    opacity: 1;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+}
+
+.clock-label {
+  font-size: 0.9rem;
+  color: var(--text-color-muted);
+}
+
+.clock-time {
+  font-size: 1.5rem;
+  font-weight: bold;
+  font-variant-numeric: tabular-nums;
+
+  &.low-time {
+    color: var(--ion-color-danger);
+    animation: pulse 1s infinite;
+  }
+}
+
+// Animation pour le temps faible
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.game-ended-controls {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+
+  .rematch-proposal {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: 0.5rem;
+    padding: 0.75rem;
+    margin-top: 0.5rem;
+
+    p {
+      margin-bottom: 0.5rem;
+    }
+  }
+}

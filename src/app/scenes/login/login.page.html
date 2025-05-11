@@ -1,0 +1,60 @@
+<ion-content [fullscreen]="true">
+  <section class="h-full h-lvh flex justify-center items-center align-center">
+    <div class="flex-1 flex justify-center align-center">
+      <form [formGroup]="loginForm" (ngSubmit)="submitForm()" novalidate>
+        <div class="rounded-lg border bg-card text-card-foreground shadow-sm w-[350px]">
+          <div class="flex flex-col space-y-1.5 p-6 text-center">
+            <h3 class="text-2xl font-semibold leading-none tracking-tight">Connexion</h3>
+            <p class="text-sm text-muted-foreground">Connectez-vous à votre compte.</p>
+          </div>
+          <div class="p-6 pt-0">
+            <div class="grid w-full items-center gap-4">
+              <div class="flex flex-col space-y-1.5">
+                <label for="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  formControlName="email"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Email"
+                />
+                <div *ngIf="isSubmitted && errorControl['email'].errors" class="text-red-500 text-xs mt-1">
+                  <div *ngIf="errorControl['email'].errors?.['required']">L'email est requis.</div>
+                  <div *ngIf="errorControl['email'].errors?.['email']">Veuillez saisir un email valide.</div>
+                </div>
+              </div>
+              <div class="flex flex-col space-y-1.5">
+                <label for="password">Mot de passe</label>
+                <input
+                  type="password"
+                  id="password"
+                  formControlName="password"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Mot de passe"
+                />
+                <div *ngIf="isSubmitted && errorControl['password'].errors" class="text-red-500 text-xs mt-1">
+                  <div *ngIf="errorControl['password'].errors?.['required']">Le mot de passe est requis.</div>
+                </div>
+              </div>
+              <input type="hidden" value="true" formControlName="rememberMe" />
+            </div>
+          </div>
+          <div class="items-center p-6 pt-0 flex gap-4 flex-col flex-wrap">
+            <button
+              class="inline-flex bg-white items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-black hover:bg-primary/90 h-10 px-4 py-2 flex-1 w-full"
+              type="submit"
+              [disabled]="!loginForm.valid && isSubmitted">
+              Se connecter
+            </button>
+            <button
+              (click)="redirectToRegister()"
+              class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 flex-1 w-full border-solid"
+              type="button">
+              Créer un compte
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </section>
+</ion-content>

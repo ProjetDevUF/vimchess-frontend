@@ -32,6 +32,94 @@
  * https://ionicframework.com/docs/theming/dark-mode
  */
 
-/* @import "@ionic/angular/css/palettes/dark.always.css"; */
+@import '@ionic/angular/css/palettes/dark.always.css';
 /* @import "@ionic/angular/css/palettes/dark.class.css"; */
-@import '@ionic/angular/css/palettes/dark.system.css';
+/* @import '@ionic/angular/css/palettes/dark.system.css'; */
+
+/* Tailwind */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Variables globales pour le thème noir profond */
+:root {
+  /* Couleurs principales */
+  --primary-color: #4ade80; /* Vert plus vif */
+  --secondary-color: #6366f1; /* Indigo */
+
+  /* Arrière-plans */
+  --bg-color: #000000; /* Noir pur */
+  --bg-color-dark: #0a0a0a; /* Presque noir */
+  --surface-color: #121212; /* Noir matériel design */
+  --surface-color-light: #1e1e1e; /* Gris très foncé */
+
+  /* Textes */
+  --text-color: rgba(255, 255, 255, 0.87);
+  --text-color-muted: rgba(255, 255, 255, 0.6);
+
+  /* Couleurs fonctionnelles */
+  --accent-color: #818cf8; /* Indigo plus clair */
+  --success-color: #4ade80; /* Vert */
+  --warning-color: #fbbf24; /* Ambre */
+  --danger-color: #f87171; /* Rouge */
+
+  /* Échiquier */
+  --board-light: #3c3c3c; /* Gris foncé */
+  --board-dark: #1e1e1e; /* Noir/gris très foncé */
+  --border-color: #2e2e2e; /* Gris foncé pour les bordures */
+  --shadow-color: rgba(0, 0, 0, 0.5); /* Ombre plus prononcée */
+
+  /* Couleurs Ionic en mode sombre */
+  --ion-color-primary: #4ade80;
+  --ion-color-primary-rgb: 74, 222, 128;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #3fc272;
+  --ion-color-primary-tint: #5de293;
+
+  --ion-color-secondary: #6366f1;
+  --ion-color-secondary-rgb: 99, 102, 241;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #575ad4;
+  --ion-color-secondary-tint: #7376f2;
+
+  --ion-color-success: #4ade80;
+  --ion-color-success-rgb: 74, 222, 128;
+  --ion-color-success-contrast: #000000;
+  --ion-color-success-contrast-rgb: 0, 0, 0;
+  --ion-color-success-shade: #3fc272;
+  --ion-color-success-tint: #5de293;
+
+  --ion-color-warning: #fbbf24;
+  --ion-color-warning-rgb: 251, 191, 36;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #dda820;
+  --ion-color-warning-tint: #fbc53a;
+
+  --ion-color-danger: #f87171;
+  --ion-color-danger-rgb: 248, 113, 113;
+  --ion-color-danger-contrast: #000000;
+  --ion-color-danger-contrast-rgb: 0, 0, 0;
+  --ion-color-danger-shade: #d96363;
+  --ion-color-danger-tint: #f98080;
+
+  /* Variables d'interface Ionic */
+  --ion-background-color: var(--bg-color-dark);
+  --ion-background-color-rgb: 10, 10, 10;
+  --ion-text-color: var(--text-color);
+  --ion-text-color-rgb: 255, 255, 255;
+  --ion-border-color: var(--border-color);
+
+  --ion-item-background: var(--surface-color);
+  --ion-toolbar-background: var(--surface-color);
+  --ion-tab-bar-background: var(--surface-color);
+  --ion-card-background: var(--surface-color);
+
+  /* Variables pour les états des composants */
+  --state-selected: rgba(74, 222, 128, 0.3);
+  --state-highlighted: rgba(251, 191, 36, 0.3);
+  --state-hover: rgba(255, 255, 255, 0.05);
+  --state-active: rgba(74, 222, 128, 0.2);
+}

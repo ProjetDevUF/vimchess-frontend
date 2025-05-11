@@ -1,0 +1,41 @@
+<div class="chessboard" [class.flipped]="shouldFlipBoard">
+  <ng-container *ngFor="let square of squares">
+    <div class="square"
+         [class.white]="square.color === 'w'"
+         [class.black]="square.color === 'b'"
+         [class.selected]="square.position === selectedSquare"
+         [class.highlighted]="highlightedSquares.includes(square.position)"
+         [class.possible-move]="possibleMoves.includes(square.position)"
+         [class.in-check]="isKingInCheck(square.position)"
+         (click)="onSquareClick(square.position)">
+
+      <span class="row-label" *ngIf="square.col === 0">{{square.position[1]}}</span>
+      <span class="col-label" *ngIf="square.row === 7">{{square.position[0]}}</span>
+
+      <div *ngIf="pieces[square.position]" class="piece"
+           [class]="pieces[square.position].color + '-' + pieces[square.position].type">
+      </div>
+
+      <div class="move-indicator" *ngIf="possibleMoves.includes(square.position)">
+        <div class="dot" [class.capture]="pieces[square.position]"></div>
+      </div>
+    </div>
+  </ng-container>
+</div>
+
+<div class="turn-status">
+  <div class="turn-indicator" [class.active]="isOurTurn">
+    <div *ngIf="isOurTurn">
+      <!-- Ajout d'un avertissement d'échec -->
+      <div *ngIf="inCheck && normalizeSide(checkingSide) === normalizeSide(side)" class="check-warning">
+        Votre roi est en échec! Vous devez le protéger.
+      </div>
+      <div>C'est votre tour de jouer</div>
+    </div>
+    <div *ngIf="!isOurTurn">En attente du coup de l'adversaire</div>
+
+    <div class="turn-details">
+      Tour: {{currentTurn}} | Votre couleur: {{side}}
+    </div>
+  </div>
+</div>

@@ -1,0 +1,288 @@
+// Utiliser les variables CSS globales au lieu de variables SCSS locales
+.chessboard {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  grid-template-rows: repeat(8, 1fr);
+  width: 100%;
+  max-width: 500px;
+  aspect-ratio: 1/1;
+  margin: 0 auto;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
+  position: relative;
+  box-shadow: 0 6px 18px var(--shadow-color);
+  overflow: hidden; // Garantit que les coins arrondis fonctionnent
+
+  &.flipped {
+    transform: rotate(180deg);
+
+    .piece, .row-label, .col-label, .move-indicator .dot {
+      transform: rotate(180deg);
+    }
+  }
+}
+
+.square {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &.white {
+    background-color: var(--board-light);
+  }
+
+  &.black {
+    background-color: var(--board-dark);
+  }
+
+  &.selected {
+    background-color: rgba(79, 134, 198, 0.7);
+  }
+
+  &:hover {
+    filter: brightness(1.2);
+  }
+
+  &.highlighted {
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 183, 77, 0.4);
+      pointer-events: none;
+    }
+  }
+
+  &.possible-move {
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(72, 187, 120, 0.3);
+      pointer-events: none;
+      z-index: 1;
+    }
+  }
+
+  .row-label {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-color-muted);
+    z-index: 1;
+  }
+
+  .col-label {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-color-muted);
+    z-index: 1;
+  }
+}
+
+.piece {
+  width: 80%;
+  height: 80%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  z-index: 2;
+  transition: transform 0.15s ease-out;
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.3));
+
+  &:hover {
+    transform: scale(1.05);
+  }
+
+  &.w-pawn {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/45/Chess_plt45.svg');
+  }
+
+  &.b-pawn {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/c/c7/Chess_pdt45.svg');
+  }
+
+  // Tours
+  &.w-rook {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/72/Chess_rlt45.svg');
+  }
+
+  &.b-rook {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/ff/Chess_rdt45.svg');
+  }
+
+  // Cavaliers
+  &.w-knight {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/7/70/Chess_nlt45.svg');
+  }
+
+  &.b-knight {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/e/ef/Chess_ndt45.svg');
+  }
+
+  // Fous
+  &.w-bishop {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/b/b1/Chess_blt45.svg');
+  }
+
+  &.b-bishop {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/9/98/Chess_bdt45.svg');
+  }
+
+  // Dames
+  &.w-queen {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/1/15/Chess_qlt45.svg');
+  }
+
+  &.b-queen {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/47/Chess_qdt45.svg');
+  }
+
+  // Rois
+  &.w-king {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/4/42/Chess_klt45.svg');
+  }
+
+  &.b-king {
+    background-image: url('https://upload.wikimedia.org/wikipedia/commons/f/f0/Chess_kdt45.svg');
+  }
+}
+
+.move-indicator {
+  position: absolute;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  pointer-events: none;
+
+  .dot {
+    width: 20%;
+    height: 20%;
+    border-radius: 50%;
+    background-color: rgba(72, 187, 120, 0.5);
+
+    &.capture {
+      width: 80%;
+      height: 80%;
+      background-color: transparent;
+      border: 2px solid rgba(239, 68, 68, 0.7);
+      border-radius: 50%;
+    }
+  }
+}
+
+.turn-status {
+  margin-top: 16px;
+  text-align: center;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: var(--surface-color);
+  box-shadow: 0 4px 6px var(--shadow-color);
+  color: var(--text-color);
+
+  .turn-indicator {
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+
+    &.active {
+      background-color: rgba(var(--ion-color-success-rgb), 0.2);
+      color: #34d399;
+    }
+
+    &:not(.active) {
+      background-color: rgba(75, 85, 99, 0.3);
+      color: #d1d5db;
+    }
+
+    .turn-details {
+      font-size: 0.8rem;
+      color: var(--text-color-muted);
+      margin-top: 6px;
+    }
+  }
+}
+
+.debug-info {
+  margin-top: 16px;
+  font-size: 0.8rem;
+  border-radius: 8px;
+  overflow: hidden;
+  color: var(--text-color);
+
+  summary {
+    cursor: pointer;
+    color: var(--text-color-muted);
+    padding: 8px;
+    background-color: var(--surface-color);
+    border-radius: 6px;
+    font-weight: 500;
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+  }
+
+  pre {
+    background-color: var(--surface-color);
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 4px;
+    overflow: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+    color: var(--text-color);
+  }
+}
+
+// Responsive design
+@media (max-width: 500px) {
+  .square .row-label, .square .col-label {
+    font-size: 0.6rem;
+  }
+}
+
+.square.in-check {
+  box-shadow: inset 0 0 0 3px red;
+  animation: pulse-check 1.5s infinite;
+}
+
+@keyframes pulse-check {
+  0% { box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.6); }
+  50% { box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 1); }
+  100% { box-shadow: inset 0 0 0 3px rgba(255, 0, 0, 0.6); }
+}
+
+.check-warning {
+  background-color: rgba(255, 0, 0, 0.7);
+  color: white;
+  padding: 8px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-weight: bold;
+  animation: pulse-warning 1.5s infinite;
+}
+
+@keyframes pulse-warning {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
+}
