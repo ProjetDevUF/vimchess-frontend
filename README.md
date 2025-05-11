@@ -57,8 +57,7 @@ Créez un fichier `environment.ts` dans le répertoire `src/environments/` (s'il
 ```typescript
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:3000',  // URL de votre backend
-  socketUrl: 'http://localhost:3000'  // URL pour les WebSockets
+  apiUrl: 'http://localhost:4000',
 };
 ```
 
