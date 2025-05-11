@@ -12,7 +12,6 @@
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
 
-    <!-- Section Matchmaking -->
     <div class="matchmaking-section ion-margin-bottom">
       <h3>Matchmaking</h3>
 
@@ -25,7 +24,6 @@
         </button>
       </div>
 
-      <!-- Remplacer la logique de l'UI pour le matchmaking -->
       <div *ngIf="matchmakingActive" class="matchmaking-active">
         <div class="matchmaking-status ion-padding bg-blue-100 rounded-lg mb-3">
           <div class="flex justify-between items-center">
@@ -47,7 +45,6 @@
 
     <div class="separator my-4 border-b border-gray-300"></div>
 
-    <!-- Parties existantes -->
     <h3>Parties directes</h3>
     <ion-list *ngIf="games.length > 0">
       <ion-item *ngFor="let game of games">
@@ -81,13 +78,13 @@
   </div>
 
   <div *ngIf="currentGame" class="game-container">
+
     <div class="game-header">
       <h2>Partie #{{ currentGame.id }}</h2>
       <ion-button color="danger" size="small" (click)="leaveGame()">Quitter</ion-button>
     </div>
 
     <div class="chessboard-container">
-
       <app-chessboard
         [board]="currentGame?.board"
         [side]="currentGame?.side"
@@ -96,7 +93,7 @@
         (moveMade)="handleMove($event)">
       </app-chessboard>
 
-      <!-- Boutons de jeu -->
+      <!-- Boutons de jeu (pendant la partie) -->
       <div class="game-controls" *ngIf="currentGame?.status === 'started'">
         <ion-button color="warning" (click)="proposeDraw()" [disabled]="currentTurn !== currentGame?.side">
           <ion-icon name="flag-outline" slot="start"></ion-icon>
@@ -107,9 +104,29 @@
           Abandonner
         </ion-button>
       </div>
+
+      <!-- Boutons pour après la fin de partie -->
+      <div class="game-ended-controls" *ngIf="currentGame?.status === 'ended'">
+        <ion-button color="success" (click)="proposeRematch()" [disabled]="isRematchProposed">
+          <ion-icon name="refresh-outline" slot="start"></ion-icon>
+          {{ isRematchProposed ? 'Revanche proposée' : 'Proposer une revanche' }}
+        </ion-button>
+
+        <!-- Afficher seulement si une proposition de revanche a été reçue -->
+        <div *ngIf="rematchProposal" class="rematch-proposal">
+          <p class="text-sm text-blue-600">Votre adversaire propose une revanche</p>
+          <div class="flex gap-2">
+            <ion-button color="success" (click)="acceptRematch()">
+              Accepter
+            </ion-button>
+            <ion-button color="danger" (click)="rejectRematch()">
+              Refuser
+            </ion-button>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Chat -->
     <div class="chat-container">
       <div class="messages">
         <div *ngFor="let msg of messages"

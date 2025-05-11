@@ -121,6 +121,24 @@ export class GamePage implements OnInit, OnDestroy {
   matchCountdownInterval: any = null;
 
   /**
+   * Indique si le joueur a proposé une revanche
+   * Utilisé pour désactiver le bouton après que la proposition ait été envoyée
+   */
+  isRematchProposed: boolean = false;
+
+  /**
+   * Contient les détails d'une proposition de revanche reçue
+   * null quand aucune proposition n'est active
+   */
+  rematchProposal: any = null;
+
+  /**
+   * Identifiant de la dernière partie terminée, utilisé pour les propositions de revanche
+   */
+  lastFinishedGameId: number | null = null;
+
+
+  /**
    * Initialise les services nécessaires et récupère le profil utilisateur.
    *
    * @param {GameSocketService} gameSocketService - Service de communication WebSocket.
@@ -139,7 +157,6 @@ export class GamePage implements OnInit, OnDestroy {
     this.authService.getUserProfile().subscribe(user => {
       this.currentUser = user;
       this.currentUserId = user?.uid || '';
-      console.log('[Game] Utilisateur actuel:', this.currentUser);
     });
   }
 
@@ -215,14 +232,39 @@ export class GamePage implements OnInit, OnDestroy {
       })
     );
 
-    // S'abonner aux mises à jour du jeu
+    this.subscriptions.push(
+      this.gameSocketService.onRematchProposed().subscribe((data: any) => {
+        this.ngZone.run(() => {
+          this.rematchProposal = data;
+        });
+      })
+    );
+
+    this.subscriptions.push(
+      this.gameSocketService.onRematchAccepted().subscribe((data: any) => {
+        this.ngZone.run(() => {
+          this.isRematchProposed = false;
+          this.rematchProposal = null;
+          this.showToast('Revanche acceptée! Nouvelle partie en cours...', 'success');
+        });
+      })
+    );
+
+    this.subscriptions.push(
+      this.gameSocketService.onRematchRejected().subscribe((data: any) => {
+        this.ngZone.run(() => {
+          this.isRematchProposed = false;
+          this.showToast('Votre adversaire a refusé la revanche', 'warning');
+        });
+      })
+    );
+
     this.subscriptions.push(
       this.gameUpdated.subscribe(update => {
         console.log('[Game] Mise à jour du jeu reçue:', update);
       })
     );
 
-    // Charger la liste des parties
     this.refreshLobby();
   }
 
@@ -316,6 +358,36 @@ export class GamePage implements OnInit, OnDestroy {
         this.handleGameStart(data);
         break;
 
+      case 'game:draw-propose':
+      case 'drawPropose':
+        this.ngZone.run(() => {
+          this.showDrawProposalAlert();
+        });
+        break;
+
+      case Game.drawPropose:
+      case 'game:draw_propose':
+        this.ngZone.run(() => {
+          this.showDrawProposalAlert();
+        });
+        break;
+
+      case Game.rejectDraw:
+      case 'game:draw_rejected':
+        this.ngZone.run(() => {
+          this.showToast('Votre proposition de nulle a été refusée', 'warning');
+        });
+        break;
+
+      case Game.draw:
+      case 'game:draw':
+        this.ngZone.run(() => {
+          this.showToast('Partie nulle acceptée!', 'success');
+          this.currentGame.status = 'ended';
+          this.showGameEndAlert({reason: 'draw'});
+        });
+        break;
+
       case 'game:shah':
         this.ngZone.run(() => {
           this.isInCheck = true;
@@ -331,13 +403,36 @@ export class GamePage implements OnInit, OnDestroy {
         });
         break;
 
-
       case 'game:mate':
         this.showToast('Échec et mat!', 'danger');
         break;
 
       case 'game:end':
         this.handleGameEnd(data);
+        break;
+
+      case Matchmaking.rematchPropose:
+        this.ngZone.run(() => {
+          console.log('[Game] Proposition de revanche reçue:', data);
+          this.rematchProposal = data;
+        });
+        break;
+
+      case Matchmaking.rematchAccept:
+        this.ngZone.run(() => {
+          console.log('[Game] Revanche acceptée:', data);
+          this.isRematchProposed = false;
+          this.rematchProposal = null;
+          this.showToast('Revanche acceptée! Nouvelle partie en cours...', 'success');
+        });
+        break;
+
+      case Matchmaking.rematchReject:
+        this.ngZone.run(() => {
+          console.log('[Game] Revanche refusée:', data);
+          this.isRematchProposed = false;
+          this.showToast('Votre adversaire a refusé la revanche', 'warning');
+        });
         break;
     }
   }
@@ -551,10 +646,59 @@ export class GamePage implements OnInit, OnDestroy {
         this.showToast(message, color);
 
         this.currentGame.status = 'ended';
-
+        this.lastFinishedGameId = this.currentGame.id;
         this.showGameEndAlert(data);
       }
     });
+  }
+
+  /**
+   * Propose une revanche à l'adversaire après une partie terminée.
+   */
+  proposeRematch() {
+    if (!this.currentGame || this.currentGame.status !== 'ended' || !this.lastFinishedGameId) {
+      this.showToast('Impossible de proposer une revanche maintenant', 'danger');
+      return;
+    }
+
+    const gameId = this.lastFinishedGameId;
+
+    this.gameSocketService.socket.emit(Matchmaking.rematchPropose, { gameId });
+    this.isRematchProposed = true;
+    this.showToast('Proposition de revanche envoyée', 'info');
+  }
+
+  /**
+   * Accepte une proposition de revanche reçue de l'adversaire.
+   */
+  acceptRematch() {
+    if (!this.rematchProposal) {
+      this.showToast('Aucune proposition de revanche à accepter', 'warning');
+      return;
+    }
+
+    const gameId = this.rematchProposal.gameId;
+    console.log(`[Game] Accepter la revanche pour la partie ${gameId}`);
+
+    this.gameSocketService.socket.emit(Matchmaking.rematchAccept, { gameId });
+    this.rematchProposal = null;
+    this.showToast('Vous avez accepté la revanche', 'success');
+    this.loading = true; // Activer l'indicateur de chargement en attendant la nouvelle partie
+  }
+
+  /**
+   * Refuse une proposition de revanche reçue de l'adversaire.
+   */
+  rejectRematch() {
+    if (!this.rematchProposal) {
+      return;
+    }
+
+    const gameId = this.rematchProposal.gameId;
+
+    this.gameSocketService.socket.emit(Matchmaking.rematchReject, { gameId });
+    this.rematchProposal = null;
+    this.showToast('Vous avez refusé la revanche', 'info');
   }
 
   /**
@@ -831,6 +975,39 @@ export class GamePage implements OnInit, OnDestroy {
     const gameId = this.currentGame.id || this.currentGame.gameId;
     this.gameSocketService.socket.emit('drawPropose', {gameId: Number(gameId)});
     this.showToast('Proposition de nulle envoyée', 'info');
+  }
+
+  /**
+   * Affiche une alerte pour demander au joueur s'il accepte la proposition de nulle.
+   */
+  async showDrawProposalAlert() {
+    if (!this.currentGame) return;
+
+    const alert = await this.alertController.create({
+      header: 'Proposition de nulle',
+      message: 'Votre adversaire propose une partie nulle. Acceptez-vous?',
+      buttons: [
+        {
+          text: 'Refuser',
+          role: 'cancel',
+          handler: () => {
+            const gameId = this.currentGame.id || this.currentGame.gameId;
+            this.gameSocketService.socket.emit('drawReject', {gameId: Number(gameId)});
+            this.showToast('Vous avez refusé la proposition de nulle', 'info');
+          }
+        },
+        {
+          text: 'Accepter',
+          handler: () => {
+            const gameId = this.currentGame.id || this.currentGame.gameId;
+            this.gameSocketService.socket.emit('drawAccept', {gameId: Number(gameId)});
+            this.showToast('Vous avez accepté la proposition de nulle', 'success');
+          }
+        }
+      ]
+    });
+
+    await alert.present();
   }
 
   /**

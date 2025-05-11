@@ -245,6 +245,63 @@ export class GameSocketService {
   }
 
   /**
+   * Propose une revanche pour une partie terminée
+   * @param gameId Identifiant de la partie terminée
+   */
+  proposeRematch(gameId: number) {
+    this.socket.emit(Matchmaking.rematchPropose, { gameId });
+  }
+
+  /**
+   * Accepte une proposition de revanche
+   * @param gameId Identifiant de la partie terminée
+   */
+  acceptRematch(gameId: number) {
+    this.socket.emit(Matchmaking.rematchAccept, { gameId });
+  }
+
+  /**
+   * Rejette une proposition de revanche
+   * @param gameId Identifiant de la partie terminée
+   */
+  rejectRematch(gameId: number) {
+    this.socket.emit(Matchmaking.rematchReject, { gameId });
+  }
+
+  /**
+   * Observable pour les propositions de revanche
+   */
+  onRematchProposed() {
+    return new Observable<any>((observer) => {
+      this.socket.on(Matchmaking.rematchPropose, (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  /**
+   * Observable pour les acceptations de revanche
+   */
+  onRematchAccepted() {
+    return new Observable<any>((observer) => {
+      this.socket.on(Matchmaking.rematchAccept, (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  /**
+   * Observable pour les refus de revanche
+   */
+  onRematchRejected() {
+    return new Observable<any>((observer) => {
+      this.socket.on(Matchmaking.rematchReject, (data) => {
+        observer.next(data);
+      });
+    });
+  }
+
+  /**
    * Crée une nouvelle partie d'échecs avec les paramètres spécifiés.
    * Si aucune couleur n'est spécifiée, en attribue une aléatoirement.
    *
