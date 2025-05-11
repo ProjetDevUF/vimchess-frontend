@@ -30,7 +30,7 @@ Suivez ces étapes pour installer et configurer VimChess sur votre machine local
 ### 1. Cloner le dépôt GitHub
 
 ```shell script
-git clone https://github.com/votre-utilisateur/VimChess-Frontend.git
+git clone https://github.com/ProjetDevUF/vimchess-frontend.git
 cd VimChess-Frontend
 ```
 
