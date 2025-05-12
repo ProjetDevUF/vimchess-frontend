@@ -23,6 +23,7 @@ import {interval, Subject, Subscription} from 'rxjs';
 import {ChessboardComponent} from '../components/chessboard/chessboard.component';
 import {HeaderComponent} from "../components/header/header.component";
 import {Game, Matchmaking} from "../../models/socket/socket-events.enum";
+import {Router} from "@angular/router";
 
 @Component({
   selector: 'app-game',
@@ -146,13 +147,15 @@ export class GamePage implements OnInit, OnDestroy {
    * @param {ToastController} toastController - Contrôleur pour afficher des messages toast.
    * @param {AlertController} alertController - Contrôleur pour afficher des alertes.
    * @param {NgZone} ngZone - Service Angular pour exécuter du code dans la zone Angular.
+   * @param router
    */
   constructor(
     public gameSocketService: GameSocketService,
     public authService: AuthService,
     private toastController: ToastController,
     private alertController: AlertController,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+    private router: Router,
   ) {
     this.authService.getUserProfile().subscribe(user => {
       this.currentUser = user;
@@ -749,25 +752,6 @@ export class GamePage implements OnInit, OnDestroy {
           type: 'text',
           placeholder: 'Contrôle du temps (ex: 5+0)',
           value: '5+0'
-        },
-        {
-          name: 'side',
-          type: 'radio',
-          label: 'Aléatoire',
-          value: 'rand',
-          checked: true
-        },
-        {
-          name: 'side',
-          type: 'radio',
-          label: 'Blanc',
-          value: 'w'
-        },
-        {
-          name: 'side',
-          type: 'radio',
-          label: 'Noir',
-          value: 'b'
         }
       ],
       buttons: [
@@ -802,6 +786,7 @@ export class GamePage implements OnInit, OnDestroy {
    */
   joinGame(gameId: string) {
     this.loading = true;
+    this.messages = [];
 
     if (!this.gameSocketService.isConnected) {
       this.gameSocketService.connect();
@@ -1036,6 +1021,8 @@ export class GamePage implements OnInit, OnDestroy {
       ]
     });
 
+    this.messages = [];
+
     await alert.present();
   }
 
@@ -1046,6 +1033,7 @@ export class GamePage implements OnInit, OnDestroy {
   joinMatchmaking(options: any = {}) {
     this.loading = true;
     this.matchmakingActive = true;
+    this.messages = [];
 
     if (!this.gameSocketService.isConnected) {
       this.gameSocketService.connect();
@@ -1130,7 +1118,7 @@ export class GamePage implements OnInit, OnDestroy {
     this.gameSocketService.acceptMatch(gameId);
     this.clearMatchCountdown();
     this.matchmakingActive = false;
-    this.loading = true; // Attente que le match commence
+    this.loading = true;
   }
 
   /**

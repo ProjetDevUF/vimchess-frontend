@@ -18,6 +18,7 @@ export class AuthService {
   private readonly userKey = 'user_data';
   private readonly tokenKey = 'access_token';
   private readonly refreshTokenKey = 'refresh_token';
+  private readonly deviceKey = 'device_id';
 
   /**
    * Initialise le service d'authentification.
@@ -133,6 +134,7 @@ export class AuthService {
     await this.storageService.remove(this.tokenKey);
     await this.storageService.remove(this.refreshTokenKey);
     await this.storageService.remove(this.userKey);
+    await this.storageService.remove(this.deviceKey);
     this.currentUserSubject.next(null);
     await this.router.navigate(['/login']);
   }

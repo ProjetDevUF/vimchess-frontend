@@ -30,7 +30,6 @@
             <div>
               <h4 class="font-bold text-blue-800">Recherche en cours...</h4>
               <p class="text-sm text-blue-600">En attente d'un adversaire de niveau équivalent</p>
-              <p *ngIf="loading" class="text-sm text-green-600 mt-2">Match trouvé! Création de la partie...</p>
             </div>
             <ion-spinner name="dots" color="primary"></ion-spinner>
           </div>
@@ -71,7 +70,8 @@
       <p>Aucune partie disponible</p>
     </div>
 
-    <button expand="block" (click)="createGame()" [disabled]="loading" class="ion-margin-vertical bg-green-800 w-full text-white p-4 rounded-lg">
+    <button expand="block" (click)="createGame()" [disabled]="loading"
+            class="ion-margin-vertical bg-green-800 w-full text-white p-4 rounded-lg">
       <ion-spinner *ngIf="loading" name="crescent"></ion-spinner>
       <span *ngIf="!loading" class="uppercase font-bold">Créer une partie</span>
     </button>
@@ -144,7 +144,13 @@
         <ion-input [(ngModel)]="newMessage" placeholder="Envoyer un message..."
                    (keyup.enter)="sendMessage()"></ion-input>
         <ion-button fill="clear" (click)="sendMessage()">
-          <ion-icon name="send-outline"></ion-icon>
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+               class="lucide lucide-send-horizontal-icon lucide-send-horizontal">
+            <path
+              d="M3.714 3.048a.498.498 0 0 0-.683.627l2.843 7.627a2 2 0 0 1 0 1.396l-2.842 7.627a.498.498 0 0 0 .682.627l18-8.5a.5.5 0 0 0 0-.904z"/>
+            <path d="M6 12h16"/>
+          </svg>
         </ion-button>
       </div>
     </div>

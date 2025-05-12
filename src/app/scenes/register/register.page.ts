@@ -86,7 +86,7 @@ export class RegisterPage implements OnInit {
     this.authService.register(this.registerForm.value).subscribe({
       next: (res) => {
         console.log(res);
-        this.presentToast('Inscription réussie !', 'success');
+        this.presentToast('Inscription réussie ! Connectez-vous.', 'success');
         this.router.navigate(['/register']);
       },
       error: (err) => {
